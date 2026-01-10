@@ -1,0 +1,16 @@
+build/
+out/
+.vs/
+*.user
+*.aps
+*.opendb
+*.db
+*.ipch
+.vscode/
+.DS_Store
+*.geode
+*.lib
+*.dll
+*.exp
+*.pdb
+*.obj
