@@ -1,7 +1,7 @@
 #pragma once
 #include <Geode/Geode.hpp>
 
-// Simple guard macros to prevent crashes from unexpected exceptions
+// pa que no se caiga si algo explota
 #define PAIMON_GUARD_BEGIN try {
 #define PAIMON_GUARD_END \
   } catch (const std::exception& e) { \

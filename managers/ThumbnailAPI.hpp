@@ -9,8 +9,6 @@
 #include <functional>
 #include <string>
 
-using namespace geode::prelude;
-
 /**
  * ThumbnailAPI - Singleton manager for thumbnail operations
  * Handles upload/download with server, caching, and fallback to local storage
@@ -18,7 +16,7 @@ using namespace geode::prelude;
 class ThumbnailAPI {
 public:
     using UploadCallback = std::function<void(bool success, const std::string& message)>;
-    using DownloadCallback = std::function<void(bool success, CCTexture2D* texture)>;
+    using DownloadCallback = std::function<void(bool success, cocos2d::CCTexture2D* texture)>;
     using DownloadDataCallback = std::function<void(bool success, const std::vector<uint8_t>& data)>;
     using ExistsCallback = std::function<void(bool exists)>;
     using ModeratorCallback = std::function<void(bool isModerator, bool isAdmin)>;
@@ -207,7 +205,7 @@ public:
     int getDownloadCount() const { return m_downloadCount; }
 
     // Helper to convert data to CCTexture2D
-    CCTexture2D* webpToTexture(const std::vector<uint8_t>& webpData);
+    cocos2d::CCTexture2D* webpToTexture(const std::vector<uint8_t>& webpData);
 
 private:
     ThumbnailAPI();
@@ -221,6 +219,6 @@ private:
     int m_downloadCount = 0;
     
     // Helper to load from local storage
-    CCTexture2D* loadFromLocal(int levelId);
+    cocos2d::CCTexture2D* loadFromLocal(int levelId);
 };
 

@@ -7,8 +7,6 @@
 #include <vector>
 #include <memory>
 
-using namespace geode::prelude;
-
 class HttpClient {
 public:
     using UploadCallback = std::function<void(bool success, const std::string& message)>;
@@ -16,7 +14,6 @@ public:
     using CheckCallback = std::function<void(bool exists)>;
     using ModeratorCallback = std::function<void(bool isModerator, bool isAdmin)>;
     using GenericCallback = std::function<void(bool success, const std::string& response)>;
-    using UserProgressCallback = std::function<void(bool success, const std::string& jsonData)>;
     using BanListCallback = std::function<void(bool success, const std::string& jsonData)>;
     using BanUserCallback = std::function<void(bool success, const std::string& message)>;
     using ModeratorsListCallback = std::function<void(bool success, const std::vector<std::string>& moderators)>;
@@ -77,9 +74,8 @@ public:
     void checkModerator(const std::string& username, ModeratorCallback callback);
     // Check if user is moderator with accountID (prefer this for security)
     void checkModeratorAccount(const std::string& username, int accountID, ModeratorCallback callback);
-    
-    // Paimon Coins System
-    void getUserProgress(const std::string& username, UserProgressCallback callback);
+
+    // Reports
     void submitReport(int levelId, const std::string& username, const std::string& note, GenericCallback callback);
 
     // Moderation: list of banned users
@@ -101,12 +97,8 @@ public:
     void get(const std::string& endpoint, GenericCallback callback);
     void post(const std::string& endpoint, const std::string& data, GenericCallback callback);
     
-    // Set server URL and API key
+    // Set server URL
     void setServerURL(const std::string& url);
-    void setAPIKey(const std::string& key);
-    
-    // Get current configuration
-    std::string getAPIKey() const { return m_apiKey; }
 
 private:
     HttpClient();

@@ -9,6 +9,7 @@
 #include "../utils/stb_image.h"
 #include <Geode/loader/Log.hpp>
 #include <Geode/loader/Mod.hpp>
+#include <Geode/utils/string.hpp>
 #include <Geode/cocos/base_nodes/CCNode.h>
 #include <Geode/cocos/cocoa/CCGeometry.h>
 #include <filesystem>
@@ -43,7 +44,7 @@ void ThumbnailLoader::initDiskCache() {
     std::thread([this]() {
         std::lock_guard<std::mutex> lock(m_diskMutex);
         auto path = Mod::get()->getSaveDir() / "cache";
-        PaimonDebug::log("[ThumbnailLoader] Initializing disk cache from: {}", path.string());
+        PaimonDebug::log("[ThumbnailLoader] Initializing disk cache from: {}", geode::utils::string::pathToString(path));
         
         if (!std::filesystem::exists(path)) {
             std::filesystem::create_directories(path);
@@ -65,16 +66,16 @@ void ThumbnailLoader::initDiskCache() {
             for (const auto& entry : std::filesystem::directory_iterator(path)) {
                 if (entry.is_regular_file()) {
                     try {
-                        auto stem = entry.path().stem().string();
+                        auto stem = geode::utils::string::pathToString(entry.path().stem());
                         // Check if it's a valid ID
                         int id = 0;
                         bool isGif = false;
                         if (stem.find("_anim") != std::string::npos) {
                             std::string idStr = stem.substr(0, stem.find("_anim"));
-                            id = std::stoi(idStr);
+                            id = geode::utils::numFromString<int>(idStr).unwrapOr(0);
                             isGif = true;
                         } else {
-                            id = std::stoi(stem);
+                            id = geode::utils::numFromString<int>(stem).unwrapOr(0);
                         }
                         
                         // Check main level
@@ -94,7 +95,9 @@ void ThumbnailLoader::initDiskCache() {
                         keptCount++;
                     } catch(...) {
                         // If filename is not an ID or error checking time, delete it
-                        std::filesystem::remove(entry.path());
+                        try {
+                            std::filesystem::remove(entry.path());
+                        } catch(...) {}
                     }
                 }
             }
@@ -264,7 +267,11 @@ void ThumbnailLoader::startTask(std::shared_ptr<Task> task) {
     // Always try disk first to avoid race conditions with initDiskCache
     // workerLoadFromDisk will check filesystem and fallback to download if missing
     std::thread([this, task]() {
-        workerLoadFromDisk(task);
+        try {
+            workerLoadFromDisk(task);
+        } catch(...) {
+            log::error("[ThumbnailLoader] Unknown error in disk loader thread");
+        }
     }).detach();
 }
 
@@ -293,11 +300,11 @@ void ThumbnailLoader::workerLoadFromDisk(std::shared_ptr<Task> task) {
                 success = true;
                 PaimonDebug::log("[ThumbnailLoader] Loaded {} bytes from disk for level {}{}", size, realID, isGif ? " (gif)" : "");
             } else {
-                PaimonDebug::warn("[ThumbnailLoader] Failed to open file for level {}: {}", realID, path.string());
+                PaimonDebug::warn("[ThumbnailLoader] Failed to open file for level {}: {}", realID, path.generic_string());
             }
         } else {
             // Not found is normal for first load, don't warn
-            // log::warn("[ThumbnailLoader] File not found for level {}: {}", task->levelID, path.string());
+            // log::warn("[ThumbnailLoader] File not found for level {}: {}", task->levelID, path.generic_string());
         }
     } catch(const std::exception& e) {
         log::error("[ThumbnailLoader] Exception loading from disk for level {}: {}", realID, e.what());
@@ -397,6 +404,7 @@ void ThumbnailLoader::workerDownload(std::shared_ptr<Task> task) {
                 if (success && !data.empty()) {
                     // Start processing in worker thread
                     std::thread([this, task, data, isGif, realID]() {
+                        try {
                         // 1. Save to disk
                         try {
                             auto path = getCachePath(realID, isGif);
@@ -406,7 +414,11 @@ void ThumbnailLoader::workerDownload(std::shared_ptr<Task> task) {
                             
                             std::lock_guard<std::mutex> lock(m_diskMutex);
                             m_diskCache.insert(task->levelID);
-                        } catch(...) {}
+                        } catch(const std::exception& e) {
+                            log::error("[ThumbnailLoader] Error saving to disk: {}", e.what());
+                        } catch(...) {
+                            log::error("[ThumbnailLoader] Unknown error saving to disk");
+                        }
                         
                         // 2. Decode & Extract Colors (Background)
                         if (GIFDecoder::isGIF(data.data(), data.size())) {
@@ -461,6 +473,12 @@ void ThumbnailLoader::workerDownload(std::shared_ptr<Task> task) {
                                      finishTask(task, nullptr, false);
                                 });
                             }
+                        }
+                        } catch (...) {
+                            log::error("[ThumbnailLoader] Unknown error in download worker thread");
+                            geode::Loader::get()->queueInMainThread([this, task]() {
+                                finishTask(task, nullptr, false);
+                            });
                         }
                     }).detach();
                 } else {
@@ -548,9 +566,14 @@ void ThumbnailLoader::invalidateLevel(int levelID, bool isGif) {
     // Remove from Disk
     std::thread([this, levelID, isGif]() {
         try {
-            std::filesystem::remove(getCachePath(levelID, isGif));
+            auto path = getCachePath(levelID, isGif);
+            if(std::filesystem::exists(path)) {
+                std::filesystem::remove(path);
+            }
             std::lock_guard<std::mutex> lock(m_diskMutex);
             m_diskCache.erase(isGif ? -levelID : levelID);
+        } catch(const std::exception& e) {
+            log::error("[ThumbnailLoader] Error deleting cache: {}", e.what());
         } catch(...) {}
     }).detach();
 }
@@ -562,7 +585,11 @@ void ThumbnailLoader::clearDiskCache() {
             std::lock_guard<std::mutex> lock(m_diskMutex);
             m_diskCache.clear();
             initDiskCache(); // Re-create folder
-        } catch(...) {}
+        } catch(const std::exception& e) {
+            log::error("[ThumbnailLoader] Error clearing disk cache: {}", e.what());
+        } catch(...) {
+            log::error("[ThumbnailLoader] Unknown error clearing disk cache");
+        }
     }).detach();
 }
 

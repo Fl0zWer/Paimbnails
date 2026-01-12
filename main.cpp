@@ -12,9 +12,6 @@ using namespace geode::prelude;
 #include <Geode/modify/EndLevelLayer.hpp>
 #include <Geode/modify/MenuLayer.hpp>
 
-// Hooks removed (only used for PaimonCoinManager).
-
-
 #include "managers/ThumbnailLoader.hpp"
 
 // No reliable "$on_mod(Unloaded)" here; cache cleanup runs on startup instead.
@@ -80,7 +77,7 @@ $on_mod(Loaded) {
         else Localization::get().setLanguage(Localization::Language::SPANISH);
     } catch (...) { log::warn("[PaimonThumbnails][Init] Failed to apply language"); }
 
-    log::info("[PaimonThumbnails][Init] Applying startup tasks");
+    log::info("[PaimonThumbnails][Init] Applying startup init");
 
     // Clear profile cache on startup.
     auto profileDir = Mod::get()->getSaveDir() / "thumbnails" / "profiles";
@@ -114,6 +111,6 @@ $on_mod(Loaded) {
         log::info("[PaimonThumbnails][Init] Color extraction skipped due to SafeMode");
     }
 
-    log::info("[PaimonThumbnails][Init] Startup tasks complete");
+    log::info("[PaimonThumbnails][Init] Startup init complete");
 }
 

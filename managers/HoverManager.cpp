@@ -1,6 +1,8 @@
 #include "HoverManager.hpp"
 #include <Geode/utils/cocos.hpp>
 
+using namespace geode::prelude;
+
 HoverManager* HoverManager::s_instance = nullptr;
 
 HoverManager::HoverManager() {}

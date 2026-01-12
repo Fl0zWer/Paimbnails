@@ -12,8 +12,6 @@
 #include <condition_variable>
 #include <set>
 
-using namespace geode::prelude;
-
 // Animated sprite that plays GIF frames with caching and incremental loading.
 class AnimatedGIFSprite : public cocos2d::CCSprite {
 public:

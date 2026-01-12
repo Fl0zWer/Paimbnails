@@ -1,6 +1,7 @@
 #include "PaimonFormat.hpp"
 #include <fstream>
 #include <Geode/loader/Log.hpp>
+#include <Geode/utils/string.hpp>
 
 using namespace geode::prelude;
 
@@ -18,7 +19,7 @@ namespace PaimonFormat {
             // Write file
             std::ofstream file(path, std::ios::binary | std::ios::trunc);
             if (!file) {
-                log::error("[PaimonFormat] Failed to open file for writing: {}", path.string());
+                log::error("[PaimonFormat] Failed to open file for writing: {}", geode::utils::string::pathToString(path));
                 return false;
             }
             
@@ -55,7 +56,7 @@ namespace PaimonFormat {
             
             std::ifstream file(path, std::ios::binary);
             if (!file) {
-                log::error("[PaimonFormat] Failed to open file for reading: {}", path.string());
+                log::error("[PaimonFormat] Failed to open file for reading: {}", geode::utils::string::pathToString(path));
                 return {};
             }
             

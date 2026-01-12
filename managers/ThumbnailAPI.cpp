@@ -3,13 +3,15 @@
 #include "ProfileThumbs.hpp"
 #include "../utils/ImageConverter.hpp"
 #include <Geode/loader/Log.hpp>
+#include <Geode/utils/string.hpp>
 #include <fstream>
 #include <chrono>
 
+using namespace geode::prelude;
+
 ThumbnailAPI::ThumbnailAPI() {
-    // Server is always enabled - no need for settings
     m_serverEnabled = true;
-    log::info("[ThumbnailAPI] Initialized - Server enabled: true (hardcoded)");
+    log::info("[ThumbnailAPI] Initialized - Server enabled: {}", m_serverEnabled);
 }
 
 void ThumbnailAPI::setServerEnabled(bool enabled) {
@@ -589,7 +591,7 @@ void ThumbnailAPI::checkModerator(const std::string& username, ModeratorCallback
             }
 
             std::string accIdStr = json["accountID"].asString().unwrapOr("0");
-            int fetchedID = std::stoi(accIdStr);
+            int fetchedID = geode::utils::numFromString<int>(accIdStr).unwrapOr(0);
 
             if (fetchedID != currentAccountID) {
                 log::warn("[ThumbnailAPI] Security: Spoof attempt? User '{}' (ID: {}) != Logged in ID: {}", 
@@ -841,7 +843,7 @@ void ThumbnailAPI::syncVerificationQueue(PendingCategory category, QueueCallback
                 if (item.contains("timestamp")) {
                     long long ms = 0;
                     if (item["timestamp"].isString()) {
-                        try { ms = std::stoll(item["timestamp"].asString().unwrapOr("0")); } catch(...) { ms = 0; }
+                        ms = geode::utils::numFromString<long long>(item["timestamp"].asString().unwrapOr("0")).unwrapOr(0);
                     } else if (item["timestamp"].isNumber()) {
                         ms = (long long)item["timestamp"].asDouble().unwrapOr(0.0);
                     }

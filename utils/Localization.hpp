@@ -3,8 +3,6 @@
 #include <unordered_map>
 #include <Geode/Geode.hpp>
 
-using namespace geode::prelude;
-
 class Localization {
 public:
     enum class Language {
@@ -20,7 +18,7 @@ public:
     void setLanguage(Language lang) {
         m_currentLanguage = lang;
         // Save as string to match mod.json
-        Mod::get()->setSavedValue("language", std::string(lang == Language::SPANISH ? "spanish" : "english"));
+        geode::Mod::get()->setSavedValue("language", std::string(lang == Language::SPANISH ? "spanish" : "english"));
     }
 
     Language getLanguage() const {
@@ -38,7 +36,7 @@ public:
 
     void loadFromSettings() {
         // Read as string to match mod.json
-        std::string langStr = Mod::get()->getSavedValue<std::string>("language", "english");
+        std::string langStr = geode::Mod::get()->getSavedValue<std::string>("language", "english");
         if (langStr == "spanish") {
             m_currentLanguage = Language::SPANISH;
         } else {
@@ -201,9 +199,6 @@ private:
             {"daily.error_weekly_title", "Error"},
             {"daily.error_weekly_msg", "Fallo al establecer Weekly."},
 
-            // TaskReadyToast
-            {"toast.task_ready", "Tarea lista"},
-
             // ThumbnailViewPopup
             {"thumbview.title", "Miniatura"},
 
@@ -248,16 +243,7 @@ private:
             {"leaderboard.loading", "Cargando..."},
             {"leaderboard.unknown", "Desconocido"},
             {"mods.title", "Moderadores de Paimbnails"},
-            {"shop.title", "Tienda Paimon"},
-            {"shop.buy_coins", "Comprar 100"},
-            {"shop.upload_banner", "Subir Banner"},
-            {"shop.premium_banners", "Banners Premium"},
-            {"shop.page", "Página {}/{}"},
-            {"shop.store_title", "Tienda Paimon"},
-            {"shop.tab_shop", "Tienda"},
-            {"shop.tab_tasks", "Tareas"},
             {"leaderboard.no_refreshes", "No more refreshes available today!"},
-            {"leaderboard.task_complete", "Task completed!"},
             {"leaderboard.no_gamemanager", "No se pudo obtener GameManager"},
             {"leaderboard.empty_username", "Nombre de usuario vacío"},
             {"leaderboard.no_image", "No se seleccionó imagen"},
@@ -271,18 +257,6 @@ private:
 
             // GIFRecordSettingsPopup
             {"gif.start", "Iniciar"},
-
-            // PaimonShopLayer
-            {"shop.admin_required", "Admin privileges required"},
-            {"shop.file_open_error", "No se pudo abrir el archivo"},
-            {"shop.uploading_banner", "Subiendo banner..."},
-            {"shop.banner_uploaded", "subido correctamente"},
-            {"shop.banner_error", "No se pudo subir el banner"},
-
-            // PaimonCoinManager
-            {"coins.already_owned", "You already own this banner!"},
-            {"coins.purchased", "Banner purchased successfully!"},
-            {"coins.not_enough", "Not enough Paimon Coins!"},
 
             // General
             {"general.error", "Error"},
@@ -495,9 +469,6 @@ private:
             {"daily.error_weekly_title", "Error"},
             {"daily.error_weekly_msg", "Failed to set Weekly level."},
 
-            // TaskReadyToast
-            {"toast.task_ready", "Task Ready"},
-
             // ThumbnailViewPopup
             {"thumbview.title", "Thumbnail"},
 
@@ -542,16 +513,7 @@ private:
             {"leaderboard.loading", "Loading..."},
             {"leaderboard.unknown", "Unknown"},
             {"mods.title", "Paimbnails Moderators"},
-            {"shop.title", "Paimon Shop"},
-            {"shop.buy_coins", "Buy 100"},
-            {"shop.upload_banner", "Upload Banner"},
-            {"shop.premium_banners", "Premium Banners"},
-            {"shop.page", "Page {}/{}"},
-            {"shop.store_title", "Paimon Store"},
-            {"shop.tab_shop", "Shop"},
-            {"shop.tab_tasks", "Tasks"},
             {"leaderboard.no_refreshes", "No more refreshes available today!"},
-            {"leaderboard.task_complete", "Task completed!"},
             {"leaderboard.no_gamemanager", "Could not get GameManager"},
             {"leaderboard.empty_username", "Empty username"},
             {"leaderboard.no_image", "No image selected"},
@@ -565,18 +527,6 @@ private:
 
             // GIFRecordSettingsPopup
             {"gif.start", "Start"},
-
-            // PaimonShopLayer
-            {"shop.admin_required", "Admin privileges required"},
-            {"shop.file_open_error", "Could not open file"},
-            {"shop.uploading_banner", "Uploading banner..."},
-            {"shop.banner_uploaded", "uploaded successfully"},
-            {"shop.banner_error", "Could not upload banner"},
-
-            // PaimonCoinManager
-            {"coins.already_owned", "You already own this banner!"},
-            {"coins.purchased", "Banner purchased successfully!"},
-            {"coins.not_enough", "Not enough Paimon Coins!"},
 
             // General
             {"general.error", "Error"},
