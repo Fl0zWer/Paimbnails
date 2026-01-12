@@ -236,12 +236,12 @@ class $modify(PaimonPauseLayer, PauseLayer) {
                 if (!arr) return;
                 CCObject* obj = nullptr;
                 CCARRAY_FOREACH(arr, obj) {
-                    auto* node = dynamic_cast<CCNode*>(obj);
+                    auto* node = typeinfo_cast<CCNode*>(obj);
                     if (!node) continue;
                     std::string id = node->getID();
                     std::string idL = id; for (auto& c : idL) c = (char)tolower(c);
                     bool looksLikeCamera = (!idL.empty() && (idL.find("camera") != std::string::npos || idL.find("screenshot") != std::string::npos));
-                    if (auto* item = dynamic_cast<CCMenuItemSpriteExtra*>(node)) {
+                    if (auto* item = typeinfo_cast<CCMenuItemSpriteExtra*>(node)) {
                         // Si el ID no ayuda, intentamos heur�stica por nombre de clase del normalImage
                         if (!looksLikeCamera) {
                             if (auto* normal = item->getNormalImage()) {

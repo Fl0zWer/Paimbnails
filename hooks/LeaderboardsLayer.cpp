@@ -45,11 +45,11 @@ protected:
             config.backgroundType = Mod::get()->getSavedValue<std::string>("scorecell-background-type", "thumbnail");
             config.blurIntensity = Mod::get()->getSavedValue<float>("scorecell-background-blur", 3.0f);
             config.darkness = Mod::get()->getSavedValue<float>("scorecell-background-darkness", 0.2f);
-            config.useGradient = Mod::get()->getSavedValue<bool>("profile-use-gradient", false);
-            config.colorA = Mod::get()->getSavedValue<ccColor3B>("profile-color-a", {255,255,255});
-            config.colorB = Mod::get()->getSavedValue<ccColor3B>("profile-color-b", {255,255,255});
-            config.separatorColor = Mod::get()->getSavedValue<ccColor3B>("score-separator-color", {0,0,0});
-            config.separatorOpacity = Mod::get()->getSavedValue<int>("score-separator-opacity", 50);
+            config.useGradient = false; 
+            config.colorA = {255, 255, 255};
+            config.colorB = {255, 255, 255};
+            config.separatorColor = {0, 0, 0};
+            config.separatorOpacity = 50;
         } catch (...) {}
 
         // Create preview node
@@ -293,7 +293,7 @@ class $modify(PaimonLeaderboardsLayer, LeaderboardsLayer) {
         // Load image to verify it's valid
         std::vector<uint8_t> data;
         CCImage img;
-        if (!img.initWithImageFile(path.string().c_str())) { 
+        if (!img.initWithImageFile(path.generic_string().c_str())) { 
             Notification::create(Localization::get().getString("profile.image_open_error").c_str(), NotificationIcon::Error)->show(); 
             return; 
         }

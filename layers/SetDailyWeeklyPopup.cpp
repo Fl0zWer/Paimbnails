@@ -2,6 +2,8 @@
 #include "../utils/HttpClient.hpp"
 #include <Geode/utils/web.hpp>
 
+using namespace geode::prelude;
+
 bool SetDailyWeeklyPopup::setup(int levelID) {
     m_levelID = levelID;
     this->setTitle("Set Daily/Weekly");

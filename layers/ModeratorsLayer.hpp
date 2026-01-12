@@ -6,11 +6,9 @@
 #include <Geode/binding/GameLevelManager.hpp>
 #include <Geode/binding/GJUserScore.hpp>
 
-using namespace geode::prelude;
-
-class ModeratorsLayer : public Popup<>, public UserInfoDelegate {
+class ModeratorsLayer : public geode::Popup<>, public UserInfoDelegate {
 protected:
-    CCArray* m_scores;
+    cocos2d::CCArray* m_scores;
     CustomListView* m_listView;
     GJListLayer* m_listLayer;
     LoadingCircle* m_loadingCircle = nullptr;
@@ -27,6 +25,8 @@ protected:
     void getUserInfoFinished(GJUserScore* score) override;
     void getUserInfoFailed(int type) override;
     void userInfoChanged(GJUserScore* score) override;
+
+    void onAPIKeyParams(cocos2d::CCObject*);
 
     virtual ~ModeratorsLayer();
 

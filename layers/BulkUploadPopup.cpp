@@ -6,6 +6,8 @@
 #include <fstream>
 #include "../utils/Localization.hpp"
 
+using namespace geode::prelude;
+
 BulkUploadPopup* BulkUploadPopup::create() {
     auto ret = new BulkUploadPopup();
     if (ret && ret->initAnchored(400.f, 280.f)) {
@@ -236,7 +238,7 @@ void BulkUploadPopup::uploadNext() {
     // Read PNG file.
     std::ifstream file(filePath, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
-        log::error("Failed to open file: {}", filePath.string());
+        log::error("Failed to open file: {}", filePath.generic_string());
         m_failCount++;
         m_currentIndex++;
         uploadNext();
@@ -248,7 +250,7 @@ void BulkUploadPopup::uploadNext() {
     
     std::vector<uint8_t> pngData(size);
     if (!file.read(reinterpret_cast<char*>(pngData.data()), size)) {
-        log::error("Failed reading file: {}", filePath.string());
+        log::error("Failed reading file: {}", filePath.generic_string());
         m_failCount++;
         m_currentIndex++;
         uploadNext();

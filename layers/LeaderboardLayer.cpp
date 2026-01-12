@@ -517,8 +517,9 @@ void LeaderboardLayer::loadLeaderboard(std::string type) {
             if (auto res = e->getValue()) {
                 if (res->ok()) {
                     auto json = res->string().unwrapOr("{}");
-                    try {
-                        auto data = matjson::parse(json).unwrap();
+                    auto dataRes = matjson::parse(json);
+                    if (dataRes.isOk()) {
+                        auto data = dataRes.unwrap();
                         if (data["success"].asBool().unwrapOr(false)) {
                             auto levelData = data["data"];
                             int levelID = levelData["levelID"].asInt().unwrapOr(0);
@@ -549,7 +550,7 @@ void LeaderboardLayer::loadLeaderboard(std::string type) {
                                 glm->getOnlineLevels(searchObj);
                             }
                         }
-                    } catch(...) {}
+                    }
                 }
                 // For Daily/Weekly, we ONLY show the featured level now.
                 // So we call createList with nullptr items.
@@ -1472,8 +1473,9 @@ void LeaderboardLayer::fetchGDBrowserLevel(int levelID) {
         if (auto res = e->getValue()) {
             if (res->ok()) {
                 auto json = res->string().unwrapOr("{}");
-                try {
-                    auto data = matjson::parse(json).unwrap();
+                auto dataRes = matjson::parse(json);
+                if (dataRes.isOk()) {
+                    auto data = dataRes.unwrap();
                     if (m_featuredLevel && m_featuredLevel->m_levelID == levelID) {
                         m_featuredLevel->m_levelName = data["name"].asString().unwrapOr(m_featuredLevel->m_levelName);
                         m_featuredLevel->m_creatorName = data["author"].asString().unwrapOr(m_featuredLevel->m_creatorName);
@@ -1508,7 +1510,7 @@ void LeaderboardLayer::fetchGDBrowserLevel(int levelID) {
                         
                         this->refreshList();
                     }
-                } catch(...) {}
+                }
             }
         }
     });

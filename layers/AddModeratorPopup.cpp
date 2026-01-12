@@ -3,6 +3,8 @@
 #include <Geode/binding/GameManager.hpp>
 #include "../utils/Localization.hpp"
 
+using namespace geode::prelude;
+
 AddModeratorPopup* AddModeratorPopup::create(std::function<void(bool, const std::string&)> callback) {
     auto ret = new AddModeratorPopup();
     if (ret && ret->init(callback)) {

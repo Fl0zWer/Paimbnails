@@ -6,6 +6,8 @@
 #include <Geode/binding/Slider.hpp>
 #include <filesystem>
 
+using namespace geode::prelude;
+
 BackgroundConfigPopup* BackgroundConfigPopup::create() {
     auto ret = new BackgroundConfigPopup();
     if (ret && ret->initAnchored(420, 290)) {
@@ -256,7 +258,7 @@ void BackgroundConfigPopup::onCustomImage(CCObject*) {
         if (result && result->isOk()) {
             auto path = result->unwrap();
             if (!path.empty()) {
-                auto pathStr = path.string();
+                auto pathStr = path.generic_string();
                 std::replace(pathStr.begin(), pathStr.end(), '\\', '/');
                 
                 Mod::get()->setSavedValue<std::string>("bg-type", "custom");
@@ -321,7 +323,7 @@ void BackgroundConfigPopup::onProfileCustomImage(CCObject*) {
         if (result && result->isOk()) {
             auto path = result->unwrap();
             if (!path.empty()) {
-                auto pathStr = path.string();
+                auto pathStr = path.generic_string();
                 std::replace(pathStr.begin(), pathStr.end(), '\\', '/');
 
                 Mod::get()->setSavedValue<std::string>("profile-bg-type", "custom");

@@ -139,14 +139,8 @@ class $modify(PaimonProfilePage, ProfilePage) {
             accountID, has, this->m_ownProfile);
         
         bool isVerified = ThumbsRegistry::get().isVerified(ThumbKind::Profile, accountID);
-        bool modMode = false;
-        try { 
-            modMode = Mod::get()->getSettingValue<bool>("moderator-mode"); 
-        } catch (...) {}
         
-        log::debug("[ProfilePage] isVerified: {}, modMode: {}", isVerified, modMode);
-        
-        if (!(isVerified || this->m_ownProfile || modMode)) {
+        if (!(isVerified || this->m_ownProfile)) {
             log::debug("[ProfilePage] Profile thumbnail hidden (not verified, not own profile, mod mode off)");
             return;
         }
@@ -297,41 +291,6 @@ class $modify(PaimonProfilePage, ProfilePage) {
             bg->setID("paimon-profilepage-bg"_spr);
             layer->addChild(bg);
             f->m_profileGradient = bg;
-        } else if (this->m_ownProfile) {
-            // Fallback to local settings for own profile if no banner generated
-            bool useGrad = false;
-            try { useGrad = Mod::get()->getSettingValue<bool>("profile-use-gradient"); } catch(...) {}
-            
-            ccColor3B colorA = {255,255,255};
-            ccColor3B colorB = {255,255,255};
-            try { colorA = Mod::get()->getSettingValue<ccColor3B>("profile-color-a"); } catch(...) {}
-            try { colorB = Mod::get()->getSettingValue<ccColor3B>("profile-color-b"); } catch(...) {}
-            
-            if (useGrad) {
-                auto grad = CCLayerGradient::create(
-                    ccc4(colorA.r, colorA.g, colorA.b, 255),
-                    ccc4(colorB.r, colorB.g, colorB.b, 255)
-                );
-                grad->setContentSize(bannerSize);
-                grad->setAnchorPoint({0,1});
-                grad->setPosition({0, cs.height});
-                grad->setVector({1.f, 0.f});
-                grad->setZOrder(3);
-                grad->setID("paimon-profilepage-bg"_spr);
-                bg = grad;
-            } else {
-                auto solid = CCLayerColor::create(ccc4(colorA.r, colorA.g, colorA.b, 255));
-                solid->setContentSize(bannerSize);
-                solid->setAnchorPoint({0,1});
-                solid->setPosition({0, cs.height});
-                solid->setZOrder(3);
-                solid->setID("paimon-profilepage-bg"_spr);
-                bg = solid;
-            }
-            if (bg) {
-                layer->addChild(bg);
-                f->m_profileGradient = bg;
-            }
         }
     }
 
@@ -733,7 +692,7 @@ class $modify(PaimonProfilePage, ProfilePage) {
                             auto timestamp = std::chrono::system_clock::to_time_t(now);
                             modFile.write(reinterpret_cast<const char*>(&timestamp), sizeof(timestamp));
                             modFile.close();
-                            log::info("[ProfilePage] Archivo de verificación de moderador guardado: {}", modDataPath.string());
+                            log::info("[ProfilePage] Archivo de verificación de moderador guardado: {}", modDataPath.generic_string());
                         } else {
                             log::error("[ProfilePage] No se pudo crear archivo de verificación");
                         }
@@ -902,7 +861,7 @@ class $modify(PaimonProfilePage, ProfilePage) {
 
         std::vector<uint8_t> data;
         CCImage img;
-        if (!img.initWithImageFile(path.string().c_str())) { Notification::create(Localization::get().getString("profile.image_open_error").c_str(), NotificationIcon::Error)->show(); return; }
+        if (!img.initWithImageFile(path.generic_string().c_str())) { Notification::create(Localization::get().getString("profile.image_open_error").c_str(), NotificationIcon::Error)->show(); return; }
 
         int w = img.getWidth(); int h = img.getHeight();
         auto raw = img.getData();

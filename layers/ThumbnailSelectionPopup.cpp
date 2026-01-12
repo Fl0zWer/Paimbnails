@@ -2,6 +2,8 @@
 #include "../utils/AnimatedGIFSprite.hpp"
 #include <Geode/binding/ButtonSprite.hpp>
 
+using namespace geode::prelude;
+
 ThumbnailSelectionPopup* ThumbnailSelectionPopup::create(const std::vector<ThumbnailAPI::ThumbnailInfo>& thumbnails, std::function<void(const std::string&)> callback) {
     auto ret = new ThumbnailSelectionPopup();
     if (ret && ret->initAnchored(400, 280, thumbnails, callback)) {
