@@ -2,6 +2,8 @@
 #include "../utils/HttpClient.hpp"
 #include "../utils/Localization.hpp"
 
+using namespace geode::prelude;
+
 BanUserPopup* BanUserPopup::create(std::string const& username) {
     auto ret = new BanUserPopup();
     if (ret && ret->initAnchored(300.f, 200.f, username)) {

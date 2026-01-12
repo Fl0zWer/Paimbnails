@@ -2,6 +2,7 @@
 
 #include <Geode/DefaultInclude.hpp>
 #include <Geode/utils/General.hpp>
+#include <Geode/utils/string.hpp>
 #include <cocos2d.h>
 #include <filesystem>
 #include <fstream>
@@ -38,10 +39,10 @@ void LocalThumbs::initCache() {
         
         for (const auto& entry : std::filesystem::directory_iterator(d)) {
             if (entry.is_regular_file() && entry.path().extension() == ".rgb") {
-                try {
-                    int32_t id = std::stoi(entry.path().stem().string());
-                    m_availableLevels.insert(id);
-                } catch (...) {}
+                auto stemStr = geode::utils::string::pathToString(entry.path().stem());
+                if (auto res = geode::utils::numFromString<int32_t>(stemStr); res.isOk()) {
+                    m_availableLevels.insert(res.unwrap());
+                }
             }
         }
     } catch(...) {}
@@ -73,7 +74,7 @@ std::string LocalThumbs::dir() const {
             log::debug("Thumbnails directory: {}", geode::utils::string::pathToString(d));
         }
     }
-    return d.string();
+    return geode::utils::string::pathToString(d);
 }
 
 std::optional<std::string> LocalThumbs::getThumbPath(int32_t levelID) const {

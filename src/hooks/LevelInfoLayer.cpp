@@ -1054,8 +1054,8 @@ protected:
         log::info("[ThumbnailViewPopup] Intentando Fuente 2: Cache directo");
         auto cachePath = geode::Mod::get()->getSaveDir() / "thumbnails" / fmt::format("{}.webp", m_levelID);
         if (std::filesystem::exists(cachePath)) {
-            log::info("[ThumbnailViewPopup] ✓ Encontrado en cache: {}", cachePath.string());
-            auto tex = CCTextureCache::sharedTextureCache()->addImage(cachePath.string().c_str(), false);
+            log::info("[ThumbnailViewPopup] ✓ Encontrado en cache: {}", cachePath.generic_string());
+            auto tex = CCTextureCache::sharedTextureCache()->addImage(cachePath.generic_string().c_str(), false);
             if (tex) {
                 log::info("[ThumbnailViewPopup] ✓ Textura cargada desde cache ({}x{})", 
                     tex->getPixelsWide(), tex->getPixelsHigh());
@@ -1065,7 +1065,7 @@ protected:
             }
             log::warn("[ThumbnailViewPopup] ✗ Error al cargar textura desde cache");
         } else {
-            log::info("[ThumbnailViewPopup] ✗ No existe en cache: {}", cachePath.string());
+            log::info("[ThumbnailViewPopup] ✗ No existe en cache: {}", cachePath.generic_string());
         }
         return false;
     }
@@ -1239,7 +1239,7 @@ protected:
         if (ThumbnailLoader::get().hasGIFData(m_levelID)) {
              auto path = ThumbnailLoader::get().getCachePath(m_levelID);
              this->retain();
-             AnimatedGIFSprite::createAsync(path.string(), [this, maxWidth, maxHeight](AnimatedGIFSprite* anim) {
+             AnimatedGIFSprite::createAsync(path.generic_string(), [this, maxWidth, maxHeight](AnimatedGIFSprite* anim) {
                  if (anim && this->m_thumbnailSprite) {
                      auto oldSprite = this->m_thumbnailSprite;
                      auto parent = oldSprite->getParent();
@@ -1531,13 +1531,25 @@ protected:
             }
 
             // Save to file (PNG)
-            if (!img.saveToFile(savePath.c_str(), false)) {
-                log::error("Failed to save image to {}", savePath);
-                Notification::create(Localization::get().getString("level.save_error").c_str(), NotificationIcon::Error)->show();
-                return;
-            }
-            log::info("Image saved successfully to {}", savePath);
-            Notification::create(Localization::get().getString("level.saved").c_str(), NotificationIcon::Success)->show();
+            std::thread([img = std::move(img), savePath]() mutable {
+                try {
+                    if (!img.saveToFile(savePath.c_str(), false)) {
+                         geode::Loader::get()->queueInMainThread([savePath]() {
+                            log::error("Failed to save image to {}", savePath);
+                            geode::Notification::create(Localization::get().getString("level.save_error").c_str(), geode::NotificationIcon::Error)->show();
+                         });
+                         return;
+                    }
+                    geode::Loader::get()->queueInMainThread([savePath]() {
+                        log::info("Image saved successfully to {}", savePath);
+                        geode::Notification::create(Localization::get().getString("level.saved").c_str(), geode::NotificationIcon::Success)->show();
+                    });
+                } catch(...) {
+                    geode::Loader::get()->queueInMainThread([]() {
+                        log::error("Unknown error in save thread");
+                    });
+                }
+            }).detach();
 
         } catch (std::exception& e) {
             log::error("Exception in onDownloadBtn: {}", e.what());
@@ -2242,7 +2254,7 @@ class $modify(PaimonLevelInfoLayer, LevelInfoLayer) {
         if (ThumbnailLoader::get().hasGIFData(levelID)) {
              auto path = ThumbnailLoader::get().getCachePath(levelID);
              this->retain();
-             AnimatedGIFSprite::createAsync(path.string(), [this, applyEffects](AnimatedGIFSprite* anim) {
+             AnimatedGIFSprite::createAsync(path.generic_string(), [this, applyEffects](AnimatedGIFSprite* anim) {
                  if (anim) {
                      // Remove old static bg
                      if (m_fields->m_pixelBg) {

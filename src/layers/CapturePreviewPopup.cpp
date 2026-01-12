@@ -759,15 +759,27 @@ void CapturePreviewPopup::onDownloadBtn(CCObject* sender) {
     // Save image
     CCImage img;
     if (img.initWithImageData(const_cast<uint8_t*>(m_buffer.get()), dataSize, CCImage::kFmtRawData, m_width, m_height, 8)) {
-        if (img.saveToFile(filePath.string().c_str(), false)) {
-            Notification::create(Localization::get().getString("preview.downloaded").c_str(), NotificationIcon::Success)->show();
-            log::info("Thumbnail saved to: {}", filePath.string());
-            
-            // Invalidate cache for this level so it reloads the new image
-            ThumbnailLoader::get().invalidateLevel(m_levelID);
-        } else {
-            Notification::create(Localization::get().getString("preview.save_error").c_str(), NotificationIcon::Error)->show();
-        }
+        // Run save logic in thread
+        std::thread([img = std::move(img), filePath = filePath, levelID = m_levelID]() mutable {
+            try {
+                if (img.saveToFile(filePath.generic_string().c_str(), false)) {
+                    geode::Loader::get()->queueInMainThread([filePath, levelID]() {
+                        geode::Notification::create(Localization::get().getString("preview.downloaded").c_str(), geode::NotificationIcon::Success)->show();
+                        log::info("Thumbnail saved to: {}", filePath.generic_string());
+                        // Invalidate cache for this level so it reloads the new image
+                        ThumbnailLoader::get().invalidateLevel(levelID);
+                    });
+                } else {
+                    geode::Loader::get()->queueInMainThread([]() {
+                        geode::Notification::create(Localization::get().getString("preview.save_error").c_str(), geode::NotificationIcon::Error)->show();
+                    });
+                }
+            } catch(...) {
+                 geode::Loader::get()->queueInMainThread([]() {
+                    log::error("Unknown error in preview save thread");
+                });
+            }
+        }).detach();
     } else {
         Notification::create(Localization::get().getString("preview.process_error").c_str(), NotificationIcon::Error)->show();
     }

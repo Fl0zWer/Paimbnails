@@ -2,9 +2,7 @@
 #include <Geode/Geode.hpp>
 #include "../managers/ThumbnailAPI.hpp"
 
-using namespace geode::prelude;
-
-class ThumbnailSelectionPopup : public Popup<const std::vector<ThumbnailAPI::ThumbnailInfo>&, std::function<void(const std::string&)>> {
+class ThumbnailSelectionPopup : public geode::Popup<const std::vector<ThumbnailAPI::ThumbnailInfo>&, std::function<void(const std::string&)>> {
 protected:
     std::vector<ThumbnailAPI::ThumbnailInfo> m_thumbnails;
     std::function<void(const std::string&)> m_callback;
@@ -12,9 +10,9 @@ protected:
     std::string m_selectedId;
 
     bool setup(const std::vector<ThumbnailAPI::ThumbnailInfo>& thumbnails, std::function<void(const std::string&)> callback) override;
-    void onSelect(CCObject* sender);
-    void onConfirm(CCObject*);
-    void onClose(CCObject* sender) override;
+    void onSelect(cocos2d::CCObject* sender);
+    void onConfirm(cocos2d::CCObject*);
+    void onClose(cocos2d::CCObject* sender) override;
     bool m_selected = false;
 
 public:

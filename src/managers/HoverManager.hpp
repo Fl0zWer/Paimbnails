@@ -3,16 +3,14 @@
 #include <Geode/Geode.hpp>
 #include <unordered_map>
 
-using namespace geode::prelude;
-
 // Forward declaration
 class LevelCell;
 
 // Per-cell hover tracking info.
 struct CellHoverInfo {
-    CCNode* cell = nullptr;              // Level cell node
-    CCSprite* detector = nullptr;         // Sprite detector invisible
-    CCPoint lastWorldPos = {0, 0};       // Last known position (optimization)
+    cocos2d::CCNode* cell = nullptr;              // Level cell node
+    cocos2d::CCSprite* detector = nullptr;         // Sprite detector invisible
+    cocos2d::CCPoint lastWorldPos = {0, 0};       // Last known position (optimization)
     bool isHovered = false;              // Estado actual de hover
     float hoverLerp = 0.0f;              // Smooth lerp (0.0 to 1.0)
     
@@ -25,13 +23,13 @@ struct CellHoverInfo {
  * HoverManager - centralized hover detection for cells.
  * Keeps invisible detectors in a separate layer and syncs them to cells.
  */
-class HoverManager : public CCNode {
+class HoverManager : public cocos2d::CCNode {
 private:
     static HoverManager* s_instance;
     
-    CCLayer* m_detectorLayer = nullptr;
-    std::unordered_map<CCNode*, CellHoverInfo> m_cellTracking;
-    CCPoint m_lastMousePos = {0, 0};
+    cocos2d::CCLayer* m_detectorLayer = nullptr;
+    std::unordered_map<cocos2d::CCNode*, CellHoverInfo> m_cellTracking;
+    cocos2d::CCPoint m_lastMousePos = {0, 0};
     bool m_enabled = true;
     
     // Only re-check hover when the mouse moves.
@@ -52,7 +50,7 @@ public:
         * Register a cell for hover tracking.
      */
     void registerCell(
-        CCNode* cell,
+        cocos2d::CCNode* cell,
         std::function<void(bool)> onHoverChange = nullptr,
         std::function<void(float)> onHoverUpdate = nullptr
     );
@@ -60,17 +58,17 @@ public:
     /**
         * Unregister a cell.
      */
-    void unregisterCell(CCNode* cell);
+    void unregisterCell(cocos2d::CCNode* cell);
     
     /**
         * Returns whether a cell is hovered.
      */
-    bool isCellHovered(CCNode* cell) const;
+    bool isCellHovered(cocos2d::CCNode* cell) const;
     
     /**
         * Returns the hover lerp value (0.0 to 1.0).
      */
-    float getCellHoverLerp(CCNode* cell) const;
+    float getCellHoverLerp(cocos2d::CCNode* cell) const;
     
     /**
         * Remove all detectors.

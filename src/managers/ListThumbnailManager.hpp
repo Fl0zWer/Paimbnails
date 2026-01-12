@@ -8,8 +8,6 @@
 #include <condition_variable>
 #include <queue>
 
-using namespace geode::prelude;
-
 class ListThumbnailManager {
 public:
     static ListThumbnailManager& get();

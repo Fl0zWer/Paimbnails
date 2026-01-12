@@ -474,9 +474,6 @@ class $modify(PaimonGJScoreCell, GJScoreCell) {
                 try { bgType = Mod::get()->getSavedValue<std::string>("scorecell-background-type", "thumbnail"); } catch (...) {}
                 try { blurIntensity = Mod::get()->getSavedValue<float>("scorecell-background-blur", 3.0f); } catch (...) {}
                 try { darkness = Mod::get()->getSavedValue<float>("scorecell-background-darkness", 0.2f); } catch (...) {}
-                try { useGradient = Mod::get()->getSavedValue<bool>("profile-use-gradient", false); } catch(...) {}
-                try { colorA = Mod::get()->getSavedValue<ccColor3B>("profile-color-a", {255,255,255}); } catch(...) {}
-                try { colorB = Mod::get()->getSavedValue<ccColor3B>("profile-color-b", {255,255,255}); } catch(...) {}
                 
                 // GIF key comes from cache (set by BannerConfigPopup)
                 if (config.hasConfig && !config.gifKey.empty()) {
@@ -769,7 +766,6 @@ class $modify(PaimonGJScoreCell, GJScoreCell) {
         
         // Apply premium effects if the user has premium banners
         bool isPremiumUser = false;
-        // Premium functionality removed along with Paimon Coins
         /*
         if (auto score = this->m_score) {
              // ... logic removed ...
@@ -840,37 +836,8 @@ class $modify(PaimonGJScoreCell, GJScoreCell) {
             )));
         }
 
-        // Apply a dark overlay if the option is enabled
-        bool darkMode = false;
-        float darkIntensity = 0.5f;
-        try { 
-            darkMode = Mod::get()->getSettingValue<bool>("dark-mode"); 
-            darkIntensity = Mod::get()->getSettingValue<float>("dark-mode-intensity");
-        } catch (...) {}
-        
-        if (darkMode && darkIntensity > 0.01f) {
-            // Dark surface to desaturate and darken the background
-            auto darkOverlay = CCLayerColor::create(ccc4(0, 0, 0, (GLubyte)(darkIntensity * 180)));
-            darkOverlay->setContentSize(cs);
-            darkOverlay->setAnchorPoint({0, 0});
-            darkOverlay->setPosition({0, 0});
-            darkOverlay->setZOrder(-3); // Behind everything else, but above the base background
-            try {
-                darkOverlay->setID("paimon-dark-overlay"_spr);
-            } catch (...) {}
-            f->m_darkOverlay = darkOverlay;
-            this->addChild(darkOverlay);
-        }
-
-    // Configurable separator behind the image (color and opacity from settings)
-    ccColor3B sepColor = {0, 0, 0};
-    int sepOpacity = 50;
-    try { sepColor = Mod::get()->getSettingValue<ccColor3B>("score-separator-color"); } catch (...) {}
-    try { sepOpacity = static_cast<int>(Mod::get()->getSettingValue<int64_t>("score-separator-opacity")); } catch (...) {}
-    if (sepOpacity < 0) sepOpacity = 0; if (sepOpacity > 255) sepOpacity = 255;
-
-    auto sep = CCLayerColor::create(ccc4(sepColor.r, sepColor.g, sepColor.b, 255));
-    sep->setOpacity(static_cast<GLubyte>(sepOpacity));
+    // Separator behind the image (fixed style)
+    auto sep = CCLayerColor::create(ccc4(0, 0, 0, 50));
     sep->setScaleX(0.45f);
         sep->ignoreAnchorPointForPosition(false);
         sep->setSkewX(angle * 2);
@@ -933,8 +900,6 @@ class $modify(PaimonGJScoreCell, GJScoreCell) {
                     Loader::get()->queueInMainThread([this, accountID]() {
                         try {
                             auto mod = Mod::get();
-                            auto oldColorA = mod->getSavedValue<ccColor3B>("profile-color-a", {255,255,255});
-                            auto oldColorB = mod->getSavedValue<ccColor3B>("profile-color-b", {255,255,255});
                             auto oldWidth = mod->getSavedValue<float>("profile-thumb-width", 0.6f);
                             
                             auto cached = ProfileThumbs::get().getCachedProfile(accountID);
@@ -945,8 +910,6 @@ class $modify(PaimonGJScoreCell, GJScoreCell) {
                             }
                             
                             // Restore settings
-                            mod->setSavedValue("profile-color-a", oldColorA);
-                            mod->setSavedValue("profile-color-b", oldColorB);
                             mod->setSavedValue("profile-thumb-width", oldWidth);
                         } catch (...) {}
                     });
@@ -1016,11 +979,7 @@ class $modify(PaimonGJScoreCell, GJScoreCell) {
             try {
                 // Initialize cache only once
                 if (!g_buttonCache.initialized) {
-                    try {
-                        g_buttonCache.buttonOffset = Mod::get()->getSettingValue<float>("scorecell-button-offset");
-                    } catch (...) {
-                        g_buttonCache.buttonOffset = 30.f;
-                    }
+                        g_buttonCache.buttonOffset = 0.0f;
                     g_buttonCache.initialized = true;
                     log::debug("[GJScoreCell] Button cache initialized with offset: {}", g_buttonCache.buttonOffset);
                 }
@@ -1040,7 +999,7 @@ class $modify(PaimonGJScoreCell, GJScoreCell) {
                 int maxSearch = std::min(10, (int)children->count());
                 
                 for (int i = 0; i < maxSearch && !foundButton; i++) {
-                    auto child = dynamic_cast<CCMenu*>(children->objectAtIndex(i));
+                    auto child = typeinfo_cast<CCMenu*>(children->objectAtIndex(i));
                     if (!child) continue;
                     
                     auto menuChildren = child->getChildren();
@@ -1050,7 +1009,7 @@ class $modify(PaimonGJScoreCell, GJScoreCell) {
                     int maxMenuSearch = std::min(5, (int)menuChildren->count());
                     
                     for (int j = 0; j < maxMenuSearch; j++) {
-                        auto btn = dynamic_cast<CCMenuItemSpriteExtra*>(menuChildren->objectAtIndex(j));
+                        auto btn = typeinfo_cast<CCMenuItemSpriteExtra*>(menuChildren->objectAtIndex(j));
                         if (!btn) continue;
                         
                         auto btnID = btn->getID();

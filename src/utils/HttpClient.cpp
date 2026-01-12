@@ -10,7 +10,7 @@
 using namespace geode::prelude;
 
 namespace {
-constexpr int kUnboundAccountID = 0; // Geode doesn't expose accountID in public bindings
+constexpr int kUnboundAccountID = 0; // Geode no da el accountID en los bindings
 
 void handleResponse(web::WebResponse* response, std::function<void(bool, const std::string&)> callback) {
     if (response->ok()) {
@@ -30,9 +30,11 @@ void handleResponse(web::WebResponse* response, std::function<void(bool, const s
 }
 
 HttpClient::HttpClient() {
-    // Hardcoded configuration
+    // config fija
     m_serverURL = "https://paimon-thumbnails-server.paimonalcuadrado.workers.dev";
-    m_apiKey = "074b91c9-6631-4670-a6f08a2ce970-0183-471b";
+    
+    // api key del server
+    m_apiKey = "074b91c9-6631-4670-a6f08a2ce970-0183-471b"; 
     
     PaimonDebug::log("[HttpClient] Initialized with server: {}", m_serverURL);
 }
@@ -43,11 +45,11 @@ void HttpClient::uploadProfile(int accountID, const std::vector<uint8_t>& pngDat
     PaimonDebug::log("[HttpClient] Uploading profile for account {} ({} bytes)", accountID, pngData.size());
 
     std::string url = m_serverURL + "/mod/upload";
-    std::string filename = std::to_string(accountID) + ".webp"; // server stores under .webp key
+    std::string filename = std::to_string(accountID) + ".webp"; // el server lo guarda como .webp
 
     std::vector<std::pair<std::string, std::string>> formFields = {
         {"path", "/profiles"},
-        {"levelId", std::to_string(accountID)}, // server expects 'levelId' field name
+        {"levelId", std::to_string(accountID)}, // el server espera el campo "levelId"
         {"username", username},
         {"accountID", std::to_string(accountID)}
     };
@@ -156,7 +158,7 @@ void HttpClient::downloadProfileConfig(int accountID, GenericCallback callback) 
         "Cache-Control: no-cache"
     };
     
-    performRequest(url, "GET", "", headers, [callback](bool success, const std::string& response) {
+    performRequest(url, "GET", "X-API-Key: " + m_apiKey, headers, [callback](bool success, const std::string& response) {
         callback(success, response);
     });
 }
@@ -180,7 +182,7 @@ void HttpClient::downloadProfile(int accountID, const std::string& username, Dow
         url += "&username=" + username;
     }
     
-    performRequest(url, "GET", "", headers, [callback, accountID](bool success, const std::string& resp) {
+    performRequest(url, "GET", "X-API-Key: " + m_apiKey, headers, [callback, accountID](bool success, const std::string& resp) {
         if (success && !resp.empty()) {
             std::vector<uint8_t> data(resp.begin(), resp.end());
             PaimonDebug::log("[HttpClient] Profile downloaded for account {}: {} bytes", accountID, data.size());
@@ -195,11 +197,6 @@ void HttpClient::downloadProfile(int accountID, const std::string& username, Dow
 void HttpClient::setServerURL(const std::string& url) {
     m_serverURL = url;
     PaimonDebug::log("[HttpClient] Server URL updated to: {}", url);
-}
-
-void HttpClient::setAPIKey(const std::string& key) {
-    m_apiKey = key;
-    PaimonDebug::log("[HttpClient] API key updated");
 }
 
 void HttpClient::uploadThumbnail(int levelId, const std::vector<uint8_t>& pngData, const std::string& username, UploadCallback callback) {
@@ -347,7 +344,7 @@ void HttpClient::getThumbnails(int levelId, GenericCallback callback) {
         "Cache-Control: no-cache"
     };
     
-    performRequest(url, "GET", "", headers, [callback](bool success, const std::string& response) {
+    performRequest(url, "GET", "X-API-Key: " + m_apiKey, headers, [callback](bool success, const std::string& response) {
         callback(success, response);
     });
 }
@@ -429,9 +426,8 @@ void HttpClient::downloadThumbnail(int levelId, bool isGif, DownloadCallback cal
 void HttpClient::downloadThumbnail(int levelId, DownloadCallback callback) {
     PaimonDebug::log("[HttpClient] downloadThumbnail llamado para level {} (priorizando WebP/GIF)", levelId);
     
-    // Priority: GIF (animated) > WebP > PNG
+    // prioridad fija: WebP > GIF > PNG
     bool preferGif = false;
-    try { preferGif = Mod::get()->getSettingValue<bool>("prefer-gif"); } catch(...) {}
     
     auto now = std::chrono::system_clock::now().time_since_epoch();
     auto ts = std::chrono::duration_cast<std::chrono::milliseconds>(now).count();
@@ -445,8 +441,7 @@ void HttpClient::downloadThumbnail(int levelId, DownloadCallback callback) {
 
     auto headers = makeHeaders();
     
-    // Optimized URLs (GIF/WebP/PNG)
-    // REMOVED: timestamp (_ts) to allow Cloudflare CDN caching
+    // urls directas (sin _ts pa que cachee cloudflare)
     std::string gifURL = m_serverURL + "/t/" + std::to_string(levelId) + ".gif";
     std::string webpURL = m_serverURL + "/t/" + std::to_string(levelId) + ".webp";
     std::string pngURL = m_serverURL + "/t/" + std::to_string(levelId) + ".png";
@@ -455,7 +450,7 @@ void HttpClient::downloadThumbnail(int levelId, DownloadCallback callback) {
 
     auto tryOnce = [this, headers, callback, levelId](const std::string& url){
         PaimonDebug::log("[HttpClient] Intentando descargar desde: {}", url);
-        performRequest(url, "GET", "", headers, [callback, levelId, url](bool success, const std::string& resp){
+        performRequest(url, "GET", "X-API-Key: " + m_apiKey, headers, [callback, levelId, url](bool success, const std::string& resp){
             PaimonDebug::log("[HttpClient] Respuesta de {}: success={}, size={}", url, success, resp.size());
             if (!success) {
                 PaimonDebug::warn("[HttpClient] DESCARGA FALLIDA para level {} desde {}", levelId, url);
@@ -477,19 +472,19 @@ void HttpClient::downloadThumbnail(int levelId, DownloadCallback callback) {
     if (preferGif) {
         PaimonDebug::log("[HttpClient] Intentando GIF primero, luego WebP, luego PNG");
         PaimonDebug::log("[HttpClient] Intentando descargar GIF desde: {}", gifURL);
-        performRequest(gifURL, "GET", "", headers, [=, this](bool ok, const std::string& resp){
+        performRequest(gifURL, "GET", "X-API-Key: " + m_apiKey, headers, [=, this](bool ok, const std::string& resp){
             if (ok && !resp.empty()) {
                 std::vector<uint8_t> data(resp.begin(), resp.end());
                 callback(true, data, 0, 0);
             } else {
-                // Fallback a WebP
+                // si falla gif, prueba webp
                 PaimonDebug::log("[HttpClient] GIF falló, intentando WebP desde: {}", webpURL);
-                performRequest(webpURL, "GET", "", headers, [=, this](bool ok2, const std::string& resp2){
+                performRequest(webpURL, "GET", "X-API-Key: " + m_apiKey, headers, [=, this](bool ok2, const std::string& resp2){
                     if (ok2 && !resp2.empty()) {
                         std::vector<uint8_t> data(resp2.begin(), resp2.end());
                         callback(true, data, 0, 0);
                     } else {
-                        // Final fallback: PNG
+                        // ultimo intento: png
                         tryOnce(pngURL);
                     }
                 });
@@ -498,19 +493,19 @@ void HttpClient::downloadThumbnail(int levelId, DownloadCallback callback) {
     } else {
         PaimonDebug::log("[HttpClient] Intentando WebP primero, luego GIF, luego PNG");
         PaimonDebug::log("[HttpClient] Intentando descargar WebP desde: {}", webpURL);
-        performRequest(webpURL, "GET", "", headers, [=, this](bool ok, const std::string& resp){
+        performRequest(webpURL, "GET", "X-API-Key: " + m_apiKey, headers, [=, this](bool ok, const std::string& resp){
             if (ok && !resp.empty()) {
                 std::vector<uint8_t> data(resp.begin(), resp.end());
                 callback(true, data, 0, 0);
             } else {
-                // Fallback a GIF
+                // si falla webp, prueba gif
                 PaimonDebug::log("[HttpClient] WebP falló, intentando GIF desde: {}", gifURL);
-                performRequest(gifURL, "GET", "", headers, [=, this](bool ok2, const std::string& resp2){
+                performRequest(gifURL, "GET", "X-API-Key: " + m_apiKey, headers, [=, this](bool ok2, const std::string& resp2){
                     if (ok2 && !resp2.empty()) {
                         std::vector<uint8_t> data(resp2.begin(), resp2.end());
                         callback(true, data, 0, 0);
                     } else {
-                        // Final fallback: PNG
+                        // ultimo intento: png
                         tryOnce(pngURL);
                     }
                 });
@@ -532,7 +527,7 @@ void HttpClient::downloadSuggestion(int levelId, DownloadCallback callback) {
     
     std::string url = m_serverURL + "/suggestions/" + std::to_string(levelId) + ".webp?_ts=" + std::to_string(ts);
     
-    performRequest(url, "GET", "", headers, [callback, levelId](bool success, const std::string& resp) {
+    performRequest(url, "GET", "X-API-Key: " + m_apiKey, headers, [callback, levelId](bool success, const std::string& resp) {
         if (success && !resp.empty()) {
             std::vector<uint8_t> data(resp.begin(), resp.end());
             PaimonDebug::log("[HttpClient] Suggestion downloaded for level {}: {} bytes", levelId, data.size());
@@ -557,7 +552,7 @@ void HttpClient::downloadUpdate(int levelId, DownloadCallback callback) {
     
     std::string url = m_serverURL + "/updates/" + std::to_string(levelId) + ".webp?_ts=" + std::to_string(ts);
     
-    performRequest(url, "GET", "", headers, [callback, levelId](bool success, const std::string& resp) {
+    performRequest(url, "GET", "X-API-Key: " + m_apiKey, headers, [callback, levelId](bool success, const std::string& resp) {
         if (success && !resp.empty()) {
             std::vector<uint8_t> data(resp.begin(), resp.end());
             PaimonDebug::log("[HttpClient] Update downloaded for level {}: {} bytes", levelId, data.size());
@@ -597,7 +592,7 @@ void HttpClient::checkThumbnailExists(int levelId, CheckCallback callback) {
         "X-API-Key: " + m_apiKey
     };
     
-    performRequest(url, "GET", "", headers,
+    performRequest(url, "GET", "X-API-Key: " + m_apiKey, headers,
         [this, callback, levelId, now](bool success, const std::string& response) {
             if (success) {
                 // Parse JSON response: {"exists": true/false}
@@ -627,7 +622,7 @@ void HttpClient::checkModerator(const std::string& username, ModeratorCallback c
         "Accept: application/json"
     };
 
-    performRequest(url, "GET", "", headers,
+    performRequest(url, "GET", "X-API-Key: " + m_apiKey, headers,
         [callback, username](bool success, const std::string& response) {
             if (success) {
                 bool isMod = false;
@@ -668,7 +663,7 @@ void HttpClient::checkModeratorAccount(const std::string& username, int accountI
         "X-API-Key: " + m_apiKey,
         "Accept: application/json"
     };
-    performRequest(url, "GET", "", headers,
+    performRequest(url, "GET", "X-API-Key: " + m_apiKey, headers,
         [callback, username, accountID](bool success, const std::string& response) {
             if (success) {
                 bool isMod = false;
@@ -685,14 +680,14 @@ void HttpClient::checkModeratorAccount(const std::string& username, int accountI
                         }
                     }
                 } catch (...) {
-                    // Fallback to manual check
+                    // por si el json viene raro
                     isMod = response.find("\"isModerator\":true") != std::string::npos ||
                             response.find("\"isModerator\": true") != std::string::npos;
                     isAdmin = response.find("\"isAdmin\":true") != std::string::npos ||
                               response.find("\"isAdmin\": true") != std::string::npos;
                 }
 
-                // Server validates by username (Geode doesn't expose the real ID)
+                // el server valida por username (geode no da el id real)
                 PaimonDebug::log("[HttpClient] (secure) User {}#{} => moderator: {}, admin: {}", username, accountID, isMod, isAdmin);
                 callback(isMod, isAdmin);
             } else {
@@ -712,22 +707,22 @@ void HttpClient::performRequest(
 ) {
     auto req = web::WebRequest();
     
-    // Longer timeout for slow/cold servers
+    // timeout largo pa cuando el server está "dormido"
     req.timeout(std::chrono::seconds(30));  // 30 segundos para dar tiempo a que el servidor "despierte"
     
-    // Add headers
+    // headers
     for (const auto& header : headers) {
         size_t colonPos = header.find(':');
         if (colonPos != std::string::npos) {
             std::string key = header.substr(0, colonPos);
             std::string value = header.substr(colonPos + 1);
-            // Trim whitespace
+            // quita espacios
             value.erase(0, value.find_first_not_of(" \t"));
             req.header(key, value);
         }
     }
     
-    // Dispatch by method (POST attaches body)
+    // manda post con body, si no, es get
     if (method == "POST") {
         if (!postData.empty()) {
             std::vector<uint8_t> body(postData.begin(), postData.end());
@@ -756,13 +751,13 @@ void HttpClient::performUpload(
     std::function<void(bool, const std::string&)> callback,
     const std::string& fileContentType
 ) {
-    // Create multipart form data
+    // arma el multipart
     std::string boundary = "----WebKitFormBoundary" + std::to_string(std::chrono::system_clock::now().time_since_epoch().count());
     std::string contentType = "multipart/form-data; boundary=" + boundary;
     
     std::vector<uint8_t> body;
     
-    // Add form fields
+    // fields
     for (const auto& field : formFields) {
         std::string fieldPart = "--" + boundary + "\r\n";
         fieldPart += "Content-Disposition: form-data; name=\"" + field.first + "\"\r\n\r\n";
@@ -770,18 +765,18 @@ void HttpClient::performUpload(
         body.insert(body.end(), fieldPart.begin(), fieldPart.end());
     }
     
-    // Add file data
+    // archivo
     std::string filePart = "--" + boundary + "\r\n";
     filePart += "Content-Disposition: form-data; name=\"" + fieldName + "\"; filename=\"" + filename + "\"\r\n";
     filePart += "Content-Type: " + fileContentType + "\r\n\r\n";
     body.insert(body.end(), filePart.begin(), filePart.end());
     body.insert(body.end(), data.begin(), data.end());
     
-    // Add closing boundary
+    // cierre
     std::string closing = "\r\n--" + boundary + "--\r\n";
     body.insert(body.end(), closing.begin(), closing.end());
     
-    // Perform POST request
+    // post
     auto req = web::WebRequest();
     req.header("Content-Type", contentType);
     for (const auto& header : headers) {
@@ -789,7 +784,7 @@ void HttpClient::performUpload(
         if (colonPos != std::string::npos) {
             std::string key = header.substr(0, colonPos);
             std::string value = header.substr(colonPos + 1);
-            // Trim whitespace
+            // quita espacios
             value.erase(0, value.find_first_not_of(" \t"));
             req.header(key, value);
         }
@@ -812,7 +807,7 @@ void HttpClient::get(const std::string& endpoint, GenericCallback callback) {
         "Accept: application/json"
     };
     
-    performRequest(url, "GET", "", headers, callback);
+    performRequest(url, "GET", "X-API-Key: " + m_apiKey, headers, callback);
 }
 
 void HttpClient::post(const std::string& endpoint, const std::string& data, GenericCallback callback) {
@@ -827,21 +822,6 @@ void HttpClient::post(const std::string& endpoint, const std::string& data, Gene
     performRequest(url, "POST", data, headers, callback);
 }
 
-void HttpClient::getUserProgress(const std::string& username, UserProgressCallback callback) {
-    PaimonDebug::log("[HttpClient] Getting user progress for: {}", username);
-    
-    std::string url = m_serverURL + "/api/paimon/user/" + username;
-    
-    std::vector<std::string> headers = {
-        "X-API-Key: " + m_apiKey,
-        "Accept: application/json"
-    };
-    
-    performRequest(url, "GET", "", headers, callback);
-}
-
-
-
 void HttpClient::getBanList(BanListCallback callback) {
     PaimonDebug::log("[HttpClient] Getting ban list");
 
@@ -852,7 +832,7 @@ void HttpClient::getBanList(BanListCallback callback) {
         "Accept: application/json"
     };
 
-    performRequest(url, "GET", "", headers, callback);
+    performRequest(url, "GET", "X-API-Key: " + m_apiKey, headers, callback);
 }
 
 void HttpClient::banUser(const std::string& username, const std::string& reason, BanUserCallback callback) {
@@ -902,7 +882,7 @@ void HttpClient::getModerators(ModeratorsListCallback callback) {
     std::string url = m_serverURL + "/api/moderators";
     std::vector<std::string> headers = { "X-API-Key: " + m_apiKey };
     
-    performRequest(url, "GET", "", headers, [callback](bool success, const std::string& response) {
+    performRequest(url, "GET", "X-API-Key: " + m_apiKey, headers, [callback](bool success, const std::string& response) {
         if (!success) {
             callback(false, {});
             return;
@@ -960,7 +940,7 @@ void HttpClient::getRating(int levelId, const std::string& username, const std::
         "X-API-Key: " + m_apiKey,
         "Accept: application/json"
     };
-    performRequest(url, "GET", "", headers, callback);
+    performRequest(url, "GET", "X-API-Key: " + m_apiKey, headers, callback);
 }
 
 void HttpClient::submitVote(int levelId, int stars, const std::string& username, const std::string& thumbnailId, GenericCallback callback) {
@@ -986,7 +966,7 @@ void HttpClient::submitVote(int levelId, int stars, const std::string& username,
 void HttpClient::downloadFromUrl(const std::string& url, DownloadCallback callback) {
     std::vector<std::string> headers = { "X-API-Key: " + m_apiKey };
     
-    performRequest(url, "GET", "", headers, [callback](bool success, const std::string& resp) {
+    performRequest(url, "GET", "X-API-Key: " + m_apiKey, headers, [callback](bool success, const std::string& resp) {
         if (success && !resp.empty()) {
             std::vector<uint8_t> data(resp.begin(), resp.end());
             callback(true, data, 0, 0);
@@ -995,5 +975,7 @@ void HttpClient::downloadFromUrl(const std::string& url, DownloadCallback callba
         }
     });
 }
+
+
 
 

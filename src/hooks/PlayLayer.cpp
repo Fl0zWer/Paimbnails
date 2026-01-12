@@ -33,11 +33,9 @@ namespace {
         
         // 1. Búsqueda prioritaria: GJBaseGameLayer or GameLayer directo
         CCARRAY_FOREACH(children, obj) {
-            if (auto* node = dynamic_cast<CCNode*>(obj)) {
-                std::string cls = typeid(*node).name();
-                if (cls.find("GJBaseGameLayer") != std::string::npos ||
-                    cls.find("GameLayer") != std::string::npos) {
-                    log::info("[FindGameplay] Found by class name: {}", cls);
+            if (auto* node = typeinfo_cast<CCNode*>(obj)) {
+                if (typeinfo_cast<GJBaseGameLayer*>(node)) {
+                    log::info("[FindGameplay] Found GJBaseGameLayer");
                     return node;
                 }
             }
@@ -45,7 +43,7 @@ namespace {
 
         // 2. Búsqueda by ID específico "game-layer" (común in mods/geode)
         CCARRAY_FOREACH(children, obj) {
-            if (auto* node = dynamic_cast<CCNode*>(obj)) {
+            if (auto* node = typeinfo_cast<CCNode*>(obj)) {
                 std::string id = node->getID();
                 if (id == "game-layer" || id == "GameLayer") {
                     log::info("[FindGameplay] Found by ID: {}", id);

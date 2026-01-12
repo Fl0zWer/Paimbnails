@@ -3,17 +3,15 @@
 #include <Geode/Geode.hpp>
 #include <Geode/ui/Popup.hpp>
 
-using namespace geode::prelude;
-
-class SetDailyWeeklyPopup : public Popup<int> {
+class SetDailyWeeklyPopup : public geode::Popup<int> {
 protected:
     int m_levelID;
 
     bool setup(int value) override;
     
-    void onSetDaily(CCObject* sender);
-    void onSetWeekly(CCObject* sender);
-    void onUnset(CCObject* sender);
+    void onSetDaily(cocos2d::CCObject* sender);
+    void onSetWeekly(cocos2d::CCObject* sender);
+    void onUnset(cocos2d::CCObject* sender);
 
 public:
     static SetDailyWeeklyPopup* create(int levelID);

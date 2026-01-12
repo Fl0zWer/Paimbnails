@@ -2,8 +2,6 @@
 
 #include <Geode/Geode.hpp>
 
-using namespace geode::prelude;
-
 class AddModeratorPopup : public FLAlertLayer, public TextInputDelegate, public FLAlertLayerProtocol {
 protected:
     CCTextInputNode* m_usernameInput = nullptr;

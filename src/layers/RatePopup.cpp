@@ -1,6 +1,8 @@
 #include "RatePopup.hpp"
 #include <Geode/binding/ButtonSprite.hpp>
 
+using namespace geode::prelude;
+
 RatePopup* RatePopup::create(int levelID, std::string thumbnailId) {
     auto ret = new RatePopup();
     if (ret && ret->initAnchored(300, 200, levelID, thumbnailId)) {

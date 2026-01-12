@@ -311,7 +311,7 @@ CCSprite* VerificationQueuePopup::createThumbnailSprite(int levelID) {
     auto cachedPath = geode::Mod::get()->getSaveDir() / "thumbnails" / subdir / fmt::format("{}.webp", levelID);
     
     if (std::filesystem::exists(cachedPath)) {
-        auto texture = CCTextureCache::sharedTextureCache()->addImage(cachedPath.string().c_str(), false);
+        auto texture = CCTextureCache::sharedTextureCache()->addImage(cachedPath.generic_string().c_str(), false);
         if (texture) {
             return CCSprite::createWithTexture(texture);
         }
@@ -362,7 +362,7 @@ CCSprite* VerificationQueuePopup::createServerThumbnailSprite(int levelID) {
     for (const auto& ext : extensions) {
         auto cachePath = cacheDir / (fmt::format("{}", levelID) + ext);
         if (std::filesystem::exists(cachePath)) {
-            auto texture = CCTextureCache::sharedTextureCache()->addImage(cachePath.string().c_str(), false);
+            auto texture = CCTextureCache::sharedTextureCache()->addImage(cachePath.generic_string().c_str(), false);
             if (texture) {
                 return CCSprite::createWithTexture(texture);
             }

@@ -210,7 +210,7 @@ class $modify(InfoBtnHookFLAlertLayer, FLAlertLayer) {
             // Load icon.
             auto resPath = Mod::get()->getResourcesDir() / "BotonMostrarThumbnails.png";
             if (std::filesystem::exists(resPath)) {
-                btnSpr = CCSprite::create(resPath.string().c_str());
+                btnSpr = CCSprite::create(resPath.generic_string().c_str());
             }
 
             if (!btnSpr) {

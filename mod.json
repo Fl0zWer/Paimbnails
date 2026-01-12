@@ -6,34 +6,25 @@
     "mac": "2.2074",
     "ios": "2.2074"
   },
-  "version": "v1.0.0",
-  "id": "FlozWer.Paimbnails",
+  "version": "1.0.1",
+  "id": "flozwer.paimbnails",
   "name": "Paimbnails",
   "developer": "FlozWer",
   "description": "Level & profile thumbnails with in-game capture, caching, and visual effects",
   "repository": "https://github.com/Fl0zWer/Paimbnails",
+  "tags": [
+    "interface",
+    "online",
+    "enhancement"
+  ],
   "links": {
     "homepage": "https://paimon-thumbnails-server.paimonalcuadrado.workers.dev/",
     "community": "https://discord.gg/5N5vpSfZwY",
-    "Donation": "https://ko-fi.com/flozwer"
+    "donation": "https://ko-fi.com/flozwer"
   },
   "resources": {
     "sprites": [
-      "resources/thumbnailButton.png",
-      "resources/boton1.png",
-      "resources/botonaceptar.png",
-      "resources/botonrechazar.png",
-      "resources/BotonMostrarThumbnails.png",
-      "resources/Capturadora.png",
-      "resources/Subida.png",
-      "resources/botonMove.png",
-      "resources/Moderador.png",
-      "resources/ImgDonador.png",
-      "resources/Shop.png",
-      "resources/Daily.png",
-      "resources/Admin.png",
-      "resources/Compras.png",
-      "logo.png"
+      "resources/*.png"
     ]
   },
   "settings": {
@@ -53,7 +44,7 @@
     "android-safe-mode": {
       "type": "bool",
       "name": "Android Safe Mode",
-      "description": "Disables heavy tasks on startup. Turn off if stable.",
+      "description": "Disables heavy startup work. Turn off if stable.",
       "default": true
     },
     "gif-ram-cache": {

@@ -5,13 +5,11 @@
 #include <filesystem>
 #include <vector>
 
-using namespace geode::prelude;
-
-class BulkUploadPopup : public Popup<> {
+class BulkUploadPopup : public geode::Popup<> {
 protected:
-    CCLabelBMFont* m_statusLabel = nullptr;
-    CCLabelBMFont* m_progressLabel = nullptr;
-    CCMenu* m_buttonMenu = nullptr;
+    cocos2d::CCLabelBMFont* m_statusLabel = nullptr;
+    cocos2d::CCLabelBMFont* m_progressLabel = nullptr;
+    cocos2d::CCMenu* m_buttonMenu = nullptr;
     
     std::vector<std::filesystem::path> m_thumbnailFiles;
     size_t m_currentIndex = 0;
@@ -20,9 +18,9 @@ protected:
     int m_failCount = 0;
     
     bool setup() override;
-    void onSelectFolder(CCObject*);
-    void onStartUpload(CCObject*);
-    void onClose(CCObject*) override;
+    void onSelectFolder(cocos2d::CCObject*);
+    void onStartUpload(cocos2d::CCObject*);
+    void onClose(cocos2d::CCObject*) override;
     
     void scanFolder(const std::filesystem::path& folder);
     void uploadNext();

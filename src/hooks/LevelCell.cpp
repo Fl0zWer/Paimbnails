@@ -948,29 +948,6 @@ class $modify(PaimonLevelCell, LevelCell) {
     }
 
     void setupDarkMode(CCNode* bg) {
-        auto fields = m_fields.self();
-        
-        std::string bgType = "gradient";
-        try { bgType = Mod::get()->getSettingValue<std::string>("levelcell-background-type"); } catch (...) {}
-        if (bgType == "thumbnail") return;
-
-        bool darkMode = false;
-        float darkIntensity = PaimonConstants::DEFAULT_DARK_INTENSITY;
-        try { 
-            darkMode = Mod::get()->getSettingValue<bool>("dark-mode"); 
-            darkIntensity = Mod::get()->getSettingValue<float>("dark-mode-intensity");
-        } catch (...) {}
-        
-        if (darkMode && darkIntensity > PaimonConstants::MIN_BLUR_STRENGTH) {
-            auto darkOverlay = CCLayerColor::create(ccc4(0, 0, 0, static_cast<GLubyte>(darkIntensity * PaimonConstants::DARK_INTENSITY_MULTIPLIER)));
-            darkOverlay->setContentSize(bg->getContentSize());
-            darkOverlay->setAnchorPoint({0, 0});
-            darkOverlay->setPosition({0, 0});
-            darkOverlay->setZOrder(100);
-            darkOverlay->setID("paimon-dark-overlay"_spr);
-            fields->m_darkOverlay = darkOverlay;
-            this->addChild(darkOverlay);
-        }
     }
 
     CCSprite* createThumbnailSprite(CCTexture2D* texture) {
@@ -983,7 +960,7 @@ class $modify(PaimonLevelCell, LevelCell) {
             auto path = ThumbnailLoader::get().getCachePath(levelIDForGIF);
             
             this->retain();
-            AnimatedGIFSprite::createAsync(path.string(), [this, levelIDForGIF](AnimatedGIFSprite* anim) {
+            AnimatedGIFSprite::createAsync(path.generic_string(), [this, levelIDForGIF](AnimatedGIFSprite* anim) {
                 if (this->m_level && this->m_level->m_levelID == levelIDForGIF) {
                     if (anim && m_fields->m_thumbSprite) {
                         auto old = m_fields->m_thumbSprite;
@@ -1176,7 +1153,7 @@ class $modify(PaimonLevelCell, LevelCell) {
              if (ThumbnailLoader::get().hasGIFData(levelID)) {
                  auto path = ThumbnailLoader::get().getCachePath(levelID);
                  this->retain();
-                 AnimatedGIFSprite::createAsync(path.string(), [this, levelID, blurIntensity](AnimatedGIFSprite* anim) {
+                 AnimatedGIFSprite::createAsync(path.generic_string(), [this, levelID, blurIntensity](AnimatedGIFSprite* anim) {
                      if (this->m_level && this->m_level->m_levelID == levelID) {
                          if (anim) {
                              if (auto bg = this->m_mainLayer) {
@@ -1814,7 +1791,7 @@ class $modify(PaimonLevelCell, LevelCell) {
         if (!node || !node->isVisible()) return false;
         
         // If it's a CCMenu, check its items
-        if (auto menu = dynamic_cast<CCMenu*>(node)) {
+        if (auto menu = typeinfo_cast<CCMenu*>(node)) {
             if (!menu->isEnabled()) return false;
             
             auto children = menu->getChildren();
@@ -1827,7 +1804,7 @@ class $modify(PaimonLevelCell, LevelCell) {
                 // Skip the ignored node (m_viewOverlay)
                 if (child == ignoreNode) continue;
                 
-                auto item = dynamic_cast<CCMenuItem*>(child);
+                auto item = typeinfo_cast<CCMenuItem*>(child);
                 if (item && item->isEnabled()) {
                     // Check collision
                     CCPoint local = item->getParent()->convertToNodeSpace(worldPoint);

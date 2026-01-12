@@ -11,6 +11,8 @@
 #include <matjson.hpp>
 #include <Geode/modify/GJScoreCell.hpp>
 
+using namespace geode::prelude;
+
 ModeratorsLayer* ModeratorsLayer::s_instance = nullptr;
 
 ModeratorsLayer* ModeratorsLayer::create() {
@@ -66,6 +68,7 @@ bool ModeratorsLayer::setup() {
     if (m_closeBtn) {
         m_closeBtn->setPosition(m_closeBtn->getPosition() + ccp(13.f, 0.f));
     }
+
     return true;
 }
 
