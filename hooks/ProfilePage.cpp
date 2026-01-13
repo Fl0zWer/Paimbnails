@@ -317,6 +317,9 @@ class $modify(PaimonProfilePage, ProfilePage) {
             m_fields->m_isAdmin = false;
             PaimonDebug::log("[ProfilePage] Inicializando perfil - status moderador: false");
 
+            // Hide menu by default, showing only if verified
+            extraMenu->setVisible(false);
+
             // Ban button (only visible for verified moderators/admins, never on own profile)
             {
                 auto banSpr = ButtonSprite::create("X", 40, true, "bigFont.fnt", "GJ_button_06.png", 30.f, 0.6f);
@@ -338,7 +341,31 @@ class $modify(PaimonProfilePage, ProfilePage) {
                 bool wasVerified = Mod::get()->getSavedValue<bool>("is-verified-moderator", false);
                 if (wasVerified) {
                     m_fields->m_isApprovedMod = true;
+                    extraMenu->setVisible(true);
                     refreshBanButtonVisibility();
+                } else if (ownProfile) {
+                    // Check server if we have no local data and it's our profile
+                    auto gm = GameManager::sharedState();
+                    if (gm && !gm->m_playerName.empty()) {
+                        std::string username = gm->m_playerName;
+                        // Using ThumbnailAPI to check status securely
+                        ThumbnailAPI::get().checkModerator(username, [this](bool isApproved, bool isAdmin) {
+                            Loader::get()->queueInMainThread([this, isApproved, isAdmin]() {
+                                if (isApproved) {
+                                    m_fields->m_isApprovedMod = true;
+                                    m_fields->m_isAdmin = isAdmin;
+                                    
+                                    // Save approved status
+                                    Mod::get()->setSavedValue("is-verified-moderator", true);
+                                    
+                                    if (m_fields->m_extraMenu) {
+                                        m_fields->m_extraMenu->setVisible(true);
+                                    }
+                                    refreshBanButtonVisibility();
+                                }
+                            });
+                        });
+                    }
                 }
             } catch (...) {
             }

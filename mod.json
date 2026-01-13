@@ -6,7 +6,7 @@
     "mac": "2.2074",
     "ios": "2.2074"
   },
-  "version": "1.0.1",
+  "version": "1.0.2",
   "id": "flozwer.paimbnails",
   "name": "Paimbnails",
   "developer": "FlozWer",
@@ -19,8 +19,7 @@
   ],
   "links": {
     "homepage": "https://paimon-thumbnails-server.paimonalcuadrado.workers.dev/",
-    "community": "https://discord.gg/5N5vpSfZwY",
-    "donation": "https://ko-fi.com/flozwer"
+    "community": "https://discord.gg/5N5vpSfZwY"
   },
   "resources": {
     "sprites": [
@@ -175,7 +174,7 @@
       "type": "string",
       "name": "Background Style",
       "description": "Visual style of the background.",
-      "default": "pixel",
+      "default": "blur",
       "one-of": ["normal", "pixel", "blur", "grayscale", "sepia", "vignette", "scanlines", "bloom", "chromatic", "radial-blur", "glitch", "posterize"]
     },
     "levelinfo-effect-intensity": {
@@ -255,11 +254,17 @@
     }
   },
   "dependencies": {
-    "geode.node-ids": ">=1.7.1",
-    "jouca.badgesapi": ">=1.3.1",
+    "geode.node-ids": {
+      "version": ">=1.7.1",
+      "importance": "required"
+    },
+    "jouca.badgesapi": {
+      "version": ">=1.3.1",
+      "importance": "required"
+    },
     "geode.custom-keybinds": {
       "version": ">=1.7.0",
-      "importance": "recommended"
+      "importance": "required"
     }
   }
 }

@@ -2071,11 +2071,11 @@ class $modify(PaimonLevelInfoLayer, LevelInfoLayer) {
         log::info("[LevelInfoLayer] Aplicando fondo del thumbnail");
         
         // Obtener estilo e intensidad
-        std::string bgStyle = "pixel";
+        std::string bgStyle = "blur";
         int intensity = 5;
         try { 
-            bgStyle = Mod::get()->getSettingValue<std::string>("levelinfo-background-style"); 
-            intensity = static_cast<int>(Mod::get()->getSettingValue<int64_t>("levelinfo-effect-intensity"));
+            bgStyle = geode::Mod::get()->getSettingValue<std::string>("levelinfo-background-style"); 
+            intensity = static_cast<int>(geode::Mod::get()->getSettingValue<int64_t>("levelinfo-effect-intensity"));
         } catch(...) {}
         
         intensity = std::max(1, std::min(10, intensity));

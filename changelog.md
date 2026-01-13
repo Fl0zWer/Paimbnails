@@ -1,3 +1,8 @@
+# v1.0.2
+
+- **Dependencies**: Updated dependency configurations and optimized download handling.
+- **Moderation**: The moderator menu is now hidden by default; added automatic server verification on profile load.
+
 # v1.0.1 (Geode Guidelines & Optimization)
 
 - **Code Auditing**: Full compliance with Geode Modding Guidelines v4.9.0.
