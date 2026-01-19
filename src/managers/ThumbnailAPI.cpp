@@ -685,7 +685,7 @@ void ThumbnailAPI::checkModeratorAccount(const std::string& username, int accoun
              }
 
              std::string accIdStr = json["accountID"].asString().unwrapOr("0");
-             int fetchedID = std::stoi(accIdStr);
+             int fetchedID = geode::utils::numFromString<int>(accIdStr).unwrapOr(0);
 
              if (fetchedID != currentAccountID) {
                  log::warn("[ThumbnailAPI] Security: Spoof attempt? User '{}' (ID: {}) != Logged in ID: {}", 

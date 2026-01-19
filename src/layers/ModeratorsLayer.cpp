@@ -8,6 +8,7 @@
 #include <Geode/binding/GJListLayer.hpp>
 #include <Geode/binding/GameLevelManager.hpp>
 #include <Geode/utils/web.hpp>
+#include <Geode/utils/string.hpp>
 #include <matjson.hpp>
 #include <Geode/modify/GJScoreCell.hpp>
 
@@ -167,7 +168,7 @@ void ModeratorsLayer::onProfileFetched(const std::string& username, const std::s
                 auto parseInt = [](matjson::Value const& val) -> int {
                     if (val.isNumber()) return val.asInt().unwrapOr(0);
                     if (val.isString()) {
-                        try { return std::stoi(val.asString().unwrapOr("0")); } catch(...) { return 0; }
+                        return geode::utils::numFromString<int>(val.asString().unwrapOr("0")).unwrapOr(0);
                     }
                     return 0;
                 };

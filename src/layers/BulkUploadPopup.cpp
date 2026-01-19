@@ -99,6 +99,7 @@ void BulkUploadPopup::onSelectFolder(CCObject*) {
         this->updateStatus(Localization::get().getString("bulk.scanning"));
 
         // Scan in a background thread to avoid blocking the UI.
+        this->retain();
         std::thread([this, folder = folderPath]() {
             scanFolder(folder);
 
@@ -116,6 +117,7 @@ void BulkUploadPopup::onSelectFolder(CCObject*) {
                         uploadBtn->setEnabled(true);
                     }
                 }
+                this->release();
             });
         }).detach();
     });

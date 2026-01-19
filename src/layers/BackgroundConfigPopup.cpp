@@ -1,6 +1,7 @@
 #include "BackgroundConfigPopup.hpp"
 #include "../managers/LocalThumbs.hpp"
 #include <Geode/utils/file.hpp>
+#include <Geode/utils/string.hpp>
 #include <Geode/binding/ButtonSprite.hpp>
 #include <Geode/binding/CCMenuItemToggler.hpp>
 #include <Geode/binding/Slider.hpp>
@@ -283,13 +284,14 @@ void BackgroundConfigPopup::onDownloadedThumbnails(CCObject*) {
 void BackgroundConfigPopup::onSetID(CCObject*) {
     std::string idStr = m_idInput->getString();
     if (idStr.empty()) return;
-    try {
-        int id = std::stoi(idStr);
+
+    if (auto res = geode::utils::numFromString<int>(idStr)) {
+        int id = res.unwrap();
         Mod::get()->setSavedValue("bg-type", std::string("id"));
         Mod::get()->setSavedValue("bg-id", id);
         (void)Mod::get()->saveData();
         Notification::create("Menu ID Set", NotificationIcon::Success)->show();
-    } catch(...) {
+    } else {
         Notification::create("Invalid ID", NotificationIcon::Error)->show();
     }
 }

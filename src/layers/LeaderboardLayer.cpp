@@ -459,7 +459,10 @@ bool LeaderboardLayer::init() {
 }
 
 void LeaderboardLayer::onBack(CCObject*) {
-    CC_SAFE_RELEASE(m_allItems);
+    CC_SAFE_RELEASE_NULL(m_allItems);
+    if (GameLevelManager::sharedState()->m_levelManagerDelegate == this) {
+        GameLevelManager::sharedState()->m_levelManagerDelegate = nullptr;
+    }
     CCDirector::sharedDirector()->replaceScene(CCTransitionFade::create(0.5f, CreatorLayer::scene()));
 }
 
@@ -1383,6 +1386,8 @@ void LeaderboardLayer::updateBackground(int levelID) {
 }
 
 void LeaderboardLayer::loadLevelsFinished(CCArray* levels, const char* key) {
+    if (!levels) return;
+
     for (int i = 0; i < levels->count(); ++i) {
         auto downloadedLevel = static_cast<GJGameLevel*>(levels->objectAtIndex(i));
         

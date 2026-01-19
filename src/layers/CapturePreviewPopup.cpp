@@ -27,6 +27,7 @@ CapturePreviewPopup* CapturePreviewPopup::create(
     bool isPlayerHidden,
     bool isModerator
 ) {
+    // nota: el buffer tiene que ser rgba (4 bytes por pixel)
     log::info("Creating CapturePreviewPopup...");
     
     if (!texture) {
@@ -36,7 +37,7 @@ CapturePreviewPopup* CapturePreviewPopup::create(
     
     auto ret = new CapturePreviewPopup();
     
-    // Increase retain count because the popup reuses the texture multiple times
+    // lo retenemos porque se usa varias veces
     texture->retain();
     
     ret->m_texture = texture;
@@ -56,7 +57,7 @@ CapturePreviewPopup* CapturePreviewPopup::create(
     }
     log::error("Failed to initialize CapturePreviewPopup");
     
-    // If initialization fails, release the texture retained in create()
+    // si falla, soltamos la textura
     texture->release();
     
     CC_SAFE_DELETE(ret);
@@ -66,19 +67,19 @@ CapturePreviewPopup* CapturePreviewPopup::create(
 void CapturePreviewPopup::updateContent(CCTexture2D* texture, std::shared_ptr<uint8_t> buffer, int width, int height) {
     if (!texture) return;
 
-    // Release old texture
+    // soltamos la vieja
     if (m_texture) {
         m_texture->release();
     }
 
-    // Retain new texture
+    // retenemos la nueva
     texture->retain();
     m_texture = texture;
     m_buffer = buffer;
     m_width = width;
     m_height = height;
 
-    // Re-create sprite to ensure correct state
+    // recreamos el sprite para que este todo bien
     if (m_previewSprite) {
         m_previewSprite->removeFromParent();
         m_previewSprite = nullptr;
@@ -93,7 +94,7 @@ void CapturePreviewPopup::updateContent(CCTexture2D* texture, std::shared_ptr<ui
 }
 
 CapturePreviewPopup::~CapturePreviewPopup() {
-    // Release the texture retained in create()
+    // soltamos la textura del create
     if (m_texture) {
         m_texture->release();
         m_texture = nullptr;
@@ -757,12 +758,12 @@ void CapturePreviewPopup::onDownloadBtn(CCObject* sender) {
     size_t dataSize = m_width * m_height * 4;
     
     // Save image
-    CCImage img;
-    if (img.initWithImageData(const_cast<uint8_t*>(m_buffer.get()), dataSize, CCImage::kFmtRawData, m_width, m_height, 8)) {
+    auto img = new CCImage();
+    if (img->initWithImageData(const_cast<uint8_t*>(m_buffer.get()), dataSize, CCImage::kFmtRawData, m_width, m_height, 8)) {
         // Run save logic in thread
-        std::thread([img = std::move(img), filePath = filePath, levelID = m_levelID]() mutable {
+        std::thread([img, filePath = filePath, levelID = m_levelID]() {
             try {
-                if (img.saveToFile(filePath.generic_string().c_str(), false)) {
+                if (img->saveToFile(filePath.generic_string().c_str(), false)) {
                     geode::Loader::get()->queueInMainThread([filePath, levelID]() {
                         geode::Notification::create(Localization::get().getString("preview.downloaded").c_str(), geode::NotificationIcon::Success)->show();
                         log::info("Thumbnail saved to: {}", filePath.generic_string());
@@ -779,8 +780,10 @@ void CapturePreviewPopup::onDownloadBtn(CCObject* sender) {
                     log::error("Unknown error in preview save thread");
                 });
             }
+            img->release();
         }).detach();
     } else {
+        img->release();
         Notification::create(Localization::get().getString("preview.process_error").c_str(), NotificationIcon::Error)->show();
     }
 }

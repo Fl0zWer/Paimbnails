@@ -131,10 +131,9 @@ std::vector<int32_t> LocalThumbs::getAllLevelIDs() const {
                     auto ext = entry.path().extension().string();
                     if (ext == ".rgb" || ext == ".png" || ext == ".webp" || ext == ".jpg") {
                         std::string stem = entry.path().stem().string();
-                        try {
-                            int32_t id = std::stoi(stem);
-                            uniqueIds.insert(id);
-                        } catch (...) {}
+                        if (auto res = geode::utils::numFromString<int32_t>(stem)) {
+                             uniqueIds.insert(res.unwrap());
+                        }
                     }
                 }
             }

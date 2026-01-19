@@ -663,18 +663,18 @@ class $modify(PaimonPauseLayer, PauseLayer) {
                     return;
                 }
                 
-                // Read image metadata.
+                // leemos los datos de la imagen
                 int bpp = img->getBitsPerComponent();
                 bool hasAlpha = img->hasAlpha();
                 
                 log::info("[PauseLayer] Image loaded {}x{} (BPP: {}, Alpha: {})", 
                           width, height, bpp, hasAlpha);
                 
-                // Compute expected data size.
+                // calculamos cuanto deberia pesar
                 int bytesPerPixel = hasAlpha ? 4 : 3;
                 size_t expectedDataSize = static_cast<size_t>(width) * height * bytesPerPixel;
                 
-                // Copy/convert to RGBA as needed.
+                // convertimos si es necesario
                 size_t rgbaSize = static_cast<size_t>(width) * height * 4;
                 std::vector<uint8_t> rgbaPixels(rgbaSize);
                 
@@ -688,7 +688,7 @@ class $modify(PaimonPauseLayer, PauseLayer) {
                         rgbaPixels[i*4 + 0] = imgData[i*3 + 0]; // R
                         rgbaPixels[i*4 + 1] = imgData[i*3 + 1]; // G
                         rgbaPixels[i*4 + 2] = imgData[i*3 + 2]; // B
-                        rgbaPixels[i*4 + 3] = 255;              // A (opaque)
+                        rgbaPixels[i*4 + 3] = 255;              // a tope de opacidad
                     }
                 }
                 
@@ -696,7 +696,7 @@ class $modify(PaimonPauseLayer, PauseLayer) {
                 
                 log::debug("[PauseLayer] RGBA data ready ({} bytes)", rgbaSize);
                 
-                // Create texture (same approach as FramebufferCapture).
+                // creamos la textura igual que en captura de pantalla
                 CCTexture2D* texture = new CCTexture2D();
                 if (!texture) {
                     log::error("[PauseLayer] Failed to create CCTexture2D");
@@ -704,7 +704,7 @@ class $modify(PaimonPauseLayer, PauseLayer) {
                     return;
                 }
                 
-                // Initialize texture from RGBA data.
+                // iniciamos la textura con los datos
                 if (!texture->initWithData(
                     rgbaPixels.data(),
                     kCCTexture2DPixelFormat_RGBA8888,
@@ -718,63 +718,58 @@ class $modify(PaimonPauseLayer, PauseLayer) {
                     return;
                 }
                 
-                // Configure texture parameters for better quality.
+                // mejores parametros
                 texture->setAntiAliasTexParameters();
                 
-                // Retain for popup lifetime.
+                // lo guardamos para que no se borre
                 texture->retain();
                 
                 log::info("[PauseLayer] Texture created successfully using FramebufferCapture method");
 
-                // Convert RGBA -> RGB (preview expects RGB).
-                size_t rgbSize = static_cast<size_t>(width) * height * 3;
-                std::shared_ptr<uint8_t> rgbData(new uint8_t[rgbSize], std::default_delete<uint8_t[]>());
+                // un envoltorio para los datos
+                std::shared_ptr<uint8_t> rgbaData(new uint8_t[rgbaSize], std::default_delete<uint8_t[]>());
+                std::memcpy(rgbaData.get(), rgbaPixels.data(), rgbaSize);
                 
-                // RGBA -> RGB (same as FramebufferCapture::rgbaToRgb).
-                for (size_t i = 0; i < static_cast<size_t>(width) * height; ++i) {
-                    rgbData.get()[i*3 + 0] = rgbaPixels[i*4 + 0]; // R
-                    rgbData.get()[i*3 + 1] = rgbaPixels[i*4 + 1]; // G
-                    rgbData.get()[i*3 + 2] = rgbaPixels[i*4 + 2]; // B
-                }
+                log::info("[PauseLayer] Showing preview with RGBA data");
                 
-                log::info("[PauseLayer] RGBA->RGB conversion complete; showing preview");
-                
-                // Show preview popup.
+                // mostramos el popup
                 auto popup = CapturePreviewPopup::create(
                     texture,
                     levelID,
-                    rgbData,
+                    rgbaData,
                     width,
                     height,
                     [levelID](bool accepted, int lvlID, std::shared_ptr<uint8_t> buf, int w, int h, std::string mode, std::string replaceId) {
                         if (accepted) {
                             log::info("[PauseLayer] User accepted image loaded from disk");
 
-                            // Always extract dominant colors (cache/gradients).
-                            auto pair = DominantColors::extract(buf.get(), w, h);
+                            // pasamos de rgba a rgb
+                            std::vector<uint8_t> rgbBuf(w * h * 3);
+                            for (int i = 0; i < w * h; i++) {
+                                rgbBuf[i*3 + 0] = buf.get()[i*4 + 0];
+                                rgbBuf[i*3 + 1] = buf.get()[i*4 + 1];
+                                rgbBuf[i*3 + 2] = buf.get()[i*4 + 2];
+                            }
+
+                            // sacamos los colores dominantes
+                            auto pair = DominantColors::extract(rgbBuf.data(), w, h);
                             ccColor3B A{pair.first.r, pair.first.g, pair.first.b};
                             ccColor3B B{pair.second.r, pair.second.g, pair.second.b};
                             
                             LevelColors::get().set(lvlID, A, B);
                             
                             log::info("[PauseLayer] Saving locally");
-                            LocalThumbs::get().saveRGB(lvlID, buf.get(), w, h);
-                            ThumbsRegistry::get().mark(ThumbKind::Level, lvlID, false);
                             
-                            size_t rgbaSize = static_cast<size_t>(w) * h * 4;
-                            std::vector<uint8_t> rgba(rgbaSize);
-                            for (size_t i = 0; i < static_cast<size_t>(w) * h; ++i) {
-                                rgba[i*4 + 0] = buf.get()[i*3 + 0];
-                                rgba[i*4 + 1] = buf.get()[i*3 + 1];
-                                rgba[i*4 + 2] = buf.get()[i*3 + 2];
-                                rgba[i*4 + 3] = 255;
-                            }
+                            // guardamos en rgb
+                            LocalThumbs::get().saveRGB(lvlID, rgbBuf.data(), w, h);
+                            ThumbsRegistry::get().mark(ThumbKind::Level, lvlID, false);
 
+                            // guardamos el png para subirlo (necesita rgba)
                             CCImage img;
-                            if (!img.initWithImageData(rgba.data(), rgbaSize, CCImage::kFmtRawData, w, h)) {
+                            if (buf && !img.initWithImageData(buf.get(), w * h * 4, CCImage::kFmtRawData, w, h)) {
                                 log::error("[PauseLayer] Failed to create image for PNG");
                                 Notification::create(Localization::get().getString("capture.process_error").c_str(), NotificationIcon::Error)->show();
-                            } else {
+                            } else if (buf) {
                                 auto tmpDir = Mod::get()->getSaveDir() / "tmp";
                                 std::error_code dirEc;
                                 std::filesystem::create_directories(tmpDir, dirEc);
@@ -784,86 +779,31 @@ class $modify(PaimonPauseLayer, PauseLayer) {
                                     Notification::create(Localization::get().getString("capture.save_png_error").c_str(), NotificationIcon::Error)->show();
                                 } else {
                                     std::ifstream pngFile(tempPath, std::ios::binary);
-                                    if (!pngFile) {
-                                        log::error("[PauseLayer] Failed to reopen temporary PNG");
-                                        Notification::create(Localization::get().getString("capture.read_png_error").c_str(), NotificationIcon::Error)->show();
-                                    } else {
+                                    if (pngFile) {
                                         pngFile.seekg(0, std::ios::end);
                                         size_t pngSize = (size_t)pngFile.tellg();
                                         pngFile.seekg(0, std::ios::beg);
                                         std::vector<uint8_t> pngData(pngSize);
                                         pngFile.read(reinterpret_cast<char*>(pngData.data()), pngSize);
                                         pngFile.close();
-                                        std::error_code ec;
-                                        std::filesystem::remove(tempPath, ec);
-                                        if (ec) log::warn("[PauseLayer] Could not delete temporary PNG: {}", ec.message());
+                                        std::filesystem::remove(tempPath);
 
-                                        log::info("[PauseLayer] PNG ready ({} bytes) for level {}", pngSize, lvlID);
-
-                                        // Get username for upload.
                                         std::string username;
                                         int accountID = 0;
-                                        try {
-                                            auto* gm = GameManager::sharedState();
-                                            if (gm) {
-                                                username = gm->m_playerName;
-                                                accountID = gm->m_playerUserID;
-                                            }
-                                        } catch(...) {}
-                                        
-                                        if (username.empty()) {
-                                            log::error("[PauseLayer] Could not get username");
-                                            Notification::create(Localization::get().getString("pause.username_error").c_str(), NotificationIcon::Error)->show();
-                                            return;
+                                        if (auto gm = GameManager::sharedState()) {
+                                            username = gm->m_playerName;
+                                            accountID = gm->m_playerUserID;
                                         }
 
-                                        if (accountID <= 0) {
-                                            Notification::create("Tienes que tener cuenta para subir", NotificationIcon::Error)->show();
-                                            return;
+                                        if (!username.empty() && accountID > 0) {
+                                            ThumbnailAPI::get().checkModeratorAccount(username, accountID, [lvlID, pngData, username, mode, replaceId](bool isMod, bool isAdmin) {
+                                                if (isMod || isAdmin) {
+                                                    ThumbnailAPI::get().uploadThumbnail(lvlID, pngData, username, mode, replaceId, [](bool s, std::string){});
+                                                } else {
+                                                    ThumbnailAPI::get().uploadSuggestion(lvlID, pngData, username, [](bool, std::string){});
+                                                }
+                                            });
                                         }
-
-                                        // Check moderator status before upload.
-                                        Notification::create(Localization::get().getString("capture.verifying").c_str(), NotificationIcon::Info)->show();
-                                        
-                                        ThumbnailAPI::get().checkModeratorAccount(username, accountID, [lvlID, pngData, username, mode, replaceId](bool isMod, bool isAdmin) {
-                                            bool allowModeratorFlow = (isMod || isAdmin);
-                                            if (allowModeratorFlow) {
-                                                log::info("[PauseLayer] User verified as moderator; uploading thumbnail");
-                                                Notification::create(Localization::get().getString("capture.uploading").c_str(), NotificationIcon::Info)->show();
-                                                
-                                                ThumbnailAPI::get().uploadThumbnail(lvlID, pngData, username, mode, replaceId,
-                                                    [lvlID](bool success, const std::string& message) {
-                                                        if (success) {
-                                                            Notification::create(Localization::get().getString("capture.upload_success").c_str(), NotificationIcon::Success)->show();
-                                                            PendingQueue::get().removeForLevel(lvlID);
-                                                            log::info("[PauseLayer] Upload successful for level {}", lvlID);
-                                                        } else {
-                                                            Notification::create(Localization::get().getString("capture.upload_error").c_str(), NotificationIcon::Error)->show();
-                                                            log::error("[PauseLayer] Upload failed for level {}: {}", lvlID, message);
-                                                        }
-                                                    }
-                                                );
-                                            } else {
-                                                log::info("[PauseLayer] User is not moderator; uploading suggestion");
-                                                Notification::create(Localization::get().getString("capture.uploading_suggestion").c_str(), NotificationIcon::Info)->show();
-                                                
-                                                ThumbnailAPI::get().uploadSuggestion(lvlID, pngData, username, [lvlID, username](bool success, const std::string& msg) {
-                                                    if (success) {
-                                                        log::info("[PauseLayer] Suggestion uploaded successfully (from file)");
-                                                        ThumbnailAPI::get().checkExists(lvlID, [lvlID, username](bool exists) {
-                                                            auto cat = exists ? PendingCategory::Update : PendingCategory::Verify;
-                                                            // Can't check creator status - level may be destroyed
-                                                            bool isCreator = false;
-                                                            PendingQueue::get().addOrBump(lvlID, cat, username, {}, isCreator);
-                                                            Notification::create(Localization::get().getString("capture.suggested").c_str(), NotificationIcon::Success)->show();
-                                                        });
-                                                    } else {
-                                                        log::error("[PauseLayer] Failed to upload suggestion: {}", msg);
-                                                        Notification::create(Localization::get().getString("capture.upload_error").c_str(), NotificationIcon::Error)->show();
-                                                    }
-                                                });
-                                            }
-                                        });
                                     }
                                 }
                             }

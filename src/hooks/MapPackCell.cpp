@@ -45,9 +45,9 @@ class $modify(PaimonMapPackCell, MapPackCell) {
             for (auto obj : CCArrayExt<CCObject*>(pack->m_levels)) {
                 // Try as CCString (Level ID)
                 if (auto str = typeinfo_cast<CCString*>(obj)) {
-                    try {
-                        levelIDs.push_back(std::stoi(str->getCString()));
-                    } catch(...) {}
+                    if (auto res = geode::utils::numFromString<int>(str->getCString())) {
+                        levelIDs.push_back(res.unwrap());
+                    }
                 } 
                 // Try as GJGameLevel
                 else if (auto level = typeinfo_cast<GJGameLevel*>(obj)) {
@@ -63,10 +63,9 @@ class $modify(PaimonMapPackCell, MapPackCell) {
             std::stringstream ss(levelsStr);
             std::string segment;
             while (std::getline(ss, segment, ',')) {
-                try {
-                    int id = std::stoi(segment);
-                    if (id > 0) levelIDs.push_back(id);
-                } catch(...) {}
+                if (auto res = geode::utils::numFromString<int>(segment)) {
+                    if (res.unwrap() > 0) levelIDs.push_back(res.unwrap());
+                }
                 // Limit removed
             }
         }

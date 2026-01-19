@@ -31,7 +31,7 @@ namespace {
         if (!children) return nullptr;
         CCObject* obj = nullptr;
         
-        // 1. Búsqueda prioritaria: GJBaseGameLayer or GameLayer directo
+        // 1. busqueda prioritaria: gjbasegamelayer o gamelayer directo
         CCARRAY_FOREACH(children, obj) {
             if (auto* node = typeinfo_cast<CCNode*>(obj)) {
                 if (typeinfo_cast<GJBaseGameLayer*>(node)) {
@@ -41,7 +41,7 @@ namespace {
             }
         }
 
-        // 2. Búsqueda by ID específico "game-layer" (común in mods/geode)
+        // 2. busqueda por id especifico "game-layer" (comun en mods/geode)
         CCARRAY_FOREACH(children, obj) {
             if (auto* node = typeinfo_cast<CCNode*>(obj)) {
                 std::string id = node->getID();
@@ -52,13 +52,13 @@ namespace {
             }
         }
 
-        // 3. Búsqueda recursiva (pero evitando UILayer and PauseLayer)
+        // 3. busqueda recursiva (pero evitando uilayer y pauselayer)
         CCARRAY_FOREACH(children, obj) {
             if (auto* node = dynamic_cast<CCNode*>(obj)) {
                 std::string cls = typeid(*node).name();
                 std::string id = node->getID();
                 
-                // Skip UI containers
+                // saltamos contenedores de ui
                 if (cls.find("UILayer") != std::string::npos || id == "UILayer") continue;
                 if (cls.find("PauseLayer") != std::string::npos) continue;
 
@@ -107,13 +107,13 @@ namespace {
     bool isNonGameplayOverlay(CCNode* node, bool checkZ) {
         if (!node) return false;
         
-        // EXCEPTION: PlayerObject should never be hidden as UI
+        // excepcion: playerobject nunca debe ocultarse como ui
         if (typeinfo_cast<PlayerObject*>(node)) return false;
 
-        // 1. Z-Order check (Solo para hijos directos de PlayLayer)
+        // 1. check de z-order
         if (checkZ && node->getZOrder() >= 10) return true;
 
-        // 2. Heurísticas basadas in nombre of clase
+        // 2. heuristicas basadas en nombre de clase
         std::string cls = typeid(*node).name();
         auto clsL = cls; for (auto& c : clsL) c = (char)tolower(c);
         
@@ -124,13 +124,13 @@ namespace {
             clsL.find("popup") != std::string::npos ||
             clsL.find("editor") != std::string::npos ||
             clsL.find("notification") != std::string::npos ||
-            (clsL.find("label") != std::string::npos && clsL.find("gameobject") == std::string::npos) || // Excluir LabelGameObject
+            (clsL.find("label") != std::string::npos && clsL.find("gameobject") == std::string::npos) || // excluir labelgameobject
             clsL.find("progress") != std::string::npos ||
             clsL.find("status") != std::string::npos || // MegaHack status
             clsL.find("trajectory") != std::string::npos || // ShowTrajectory
             clsL.find("hitbox") != std::string::npos) return true;
 
-        // 3. Heurísticas basadas in ID
+        // 3. heuristicas basadas en id
         std::string id = node->getID();
         auto idL = id; for (auto& c : idL) c = (char)tolower(c);
         if (!idL.empty()) {
@@ -142,22 +142,22 @@ namespace {
             }
         }
         
-        // 4. Tipos explícitos
+        // 4. tipos explicitos
         if (dynamic_cast<CCMenu*>(node) != nullptr) return true;
         
-        // Mejor estrategia para CCLabelBMFont:
+        // mejor estrategia para cclabelbmfont
         if (auto* label = dynamic_cast<CCLabelBMFont*>(node)) {
-             // Si es hijo directo de PlayLayer y tiene Z >= 10, es casi seguro UI.
-             // If tiene Z bajo, podría ser texto of the nivel.
+             // si es hijo directo con z alto es casi seguro ui
+             // si tiene z bajo podria ser texto del nivel
              if (checkZ && node->getZOrder() >= 10) return true;
-             // Si no es hijo directo, confiamos en el ID o nombre de clase (ya chequeado)
+             // si no es hijo directo, confiamos en id o clase
         }
 
         return false;
     }
 
-    // Recorre recursivamente para ocultar UI
-    // checkZ: true solo para el primer nivel (hijos directos de PlayLayer)
+    // recorre recursivamente para ocultar ui
+    // checkz: solo para el primer nivel
     void hideNonGameplayDescendants(CCNode* root, std::vector<CCNode*>& hidden, bool checkZ, PlayLayer* pl) {
         if (!root) return;
         auto* children = root->getChildren();
@@ -168,25 +168,25 @@ namespace {
             auto* node = dynamic_cast<CCNode*>(obj);
             if (!node) continue;
 
-            // EXCEPTION: Explicitly check against player objects if PlayLayer is provided
+            // excepcion: check explicito contra player objects si hay playlayer
             if (pl) {
                 if (node == pl->m_player1 || node == pl->m_player2) continue;
             }
 
-            // Si es un nodo de UI conocido, ocultarlo y NO descender
+            // si es nodo de ui conocido lo ocultamos y no bajamos mas
             if (node->isVisible() && isNonGameplayOverlay(node, checkZ)) {
                 node->setVisible(false);
                 hidden.push_back(node);
                 log::info("[Capture] Hide: ID='{}', Class='{}', Z={}", node->getID(), typeid(*node).name(), node->getZOrder());
             } 
-            // If Not es UI, descendemos only if parece a contenedor genérico
-            // Desactivamos checkZ para niveles profundos para no ocultar objetos del juego
+            // si no es ui, bajamos solo si parece contenedor
+            // desactivamos checkz para no ocultar objetos del juego
             else {
                 std::string cls = typeid(*node).name();
-                // Only descender if es a nodo contenedor genérico or Layer
-                // NO descender en GameObjects, BatchNodes, ParticleSystems, etc.
+                // solo bajar si es un nodo contenedor o layer
+                // no bajar en gameobjects, batchnodes, particlesystems, etc.
                 if (cls.find("CCNode") != std::string::npos || cls.find("Layer") != std::string::npos) {
-                     // Excepción: Not descender in GJBaseGameLayer or GameLayer (the juego in sí)
+                     // excepcion: no bajar en gjbasegamelayer o gamelayer
                      if (cls.find("GameLayer") == std::string::npos) {
                         hideNonGameplayDescendants(node, hidden, false, pl);
                      }

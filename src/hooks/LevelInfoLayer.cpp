@@ -1523,32 +1523,34 @@ protected:
             auto rgba = ImageConverter::rgbToRgba(rgbData, width, height);
 
             // Build a CCImage from the RGBA data
-            CCImage img;
-            if (!img.initWithImageData(rgba.data(), rgba.size(), CCImage::kFmtRawData, width, height)) {
+            auto img = new CCImage();
+            if (!img->initWithImageData(rgba.data(), rgba.size(), CCImage::kFmtRawData, width, height)) {
                 log::error("Failed to init CCImage with raw data");
+                img->release();
                 Notification::create(Localization::get().getString("level.create_error").c_str(), NotificationIcon::Error)->show();
                 return;
             }
 
             // Save to file (PNG)
-            std::thread([img = std::move(img), savePath]() mutable {
+            std::thread([img, savePath]() {
                 try {
-                    if (!img.saveToFile(savePath.c_str(), false)) {
+                    if (!img->saveToFile(savePath.c_str(), false)) {
                          geode::Loader::get()->queueInMainThread([savePath]() {
                             log::error("Failed to save image to {}", savePath);
                             geode::Notification::create(Localization::get().getString("level.save_error").c_str(), geode::NotificationIcon::Error)->show();
                          });
-                         return;
+                    } else {
+                        geode::Loader::get()->queueInMainThread([savePath]() {
+                            log::info("Image saved successfully to {}", savePath);
+                            geode::Notification::create(Localization::get().getString("level.saved").c_str(), geode::NotificationIcon::Success)->show();
+                        });
                     }
-                    geode::Loader::get()->queueInMainThread([savePath]() {
-                        log::info("Image saved successfully to {}", savePath);
-                        geode::Notification::create(Localization::get().getString("level.saved").c_str(), geode::NotificationIcon::Success)->show();
-                    });
                 } catch(...) {
                     geode::Loader::get()->queueInMainThread([]() {
                         log::error("Unknown error in save thread");
                     });
                 }
+                img->release();
             }).detach();
 
         } catch (std::exception& e) {
@@ -2071,11 +2073,11 @@ class $modify(PaimonLevelInfoLayer, LevelInfoLayer) {
         log::info("[LevelInfoLayer] Aplicando fondo del thumbnail");
         
         // Obtener estilo e intensidad
-        std::string bgStyle = "pixel";
+        std::string bgStyle = "blur";
         int intensity = 5;
         try { 
-            bgStyle = Mod::get()->getSettingValue<std::string>("levelinfo-background-style"); 
-            intensity = static_cast<int>(Mod::get()->getSettingValue<int64_t>("levelinfo-effect-intensity"));
+            bgStyle = geode::Mod::get()->getSettingValue<std::string>("levelinfo-background-style"); 
+            intensity = static_cast<int>(geode::Mod::get()->getSettingValue<int64_t>("levelinfo-effect-intensity"));
         } catch(...) {}
         
         intensity = std::max(1, std::min(10, intensity));

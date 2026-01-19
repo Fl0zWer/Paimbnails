@@ -5,7 +5,7 @@
 
 // Minimal helper to reserve positions without relying on the original layout.
 
-class UILayoutGuard {
+class [[deprecated("logica vieja, no usar")]] UILayoutGuard {
 public:
     explicit UILayoutGuard(cocos2d::CCNode* container);
 

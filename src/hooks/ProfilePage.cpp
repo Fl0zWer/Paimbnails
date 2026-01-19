@@ -97,8 +97,8 @@ class $modify(PaimonProfilePage, ProfilePage) {
                         if (!u.isString()) continue;
                         auto nameLower = geode::utils::string::toLower(u.asString().unwrap());
                         if (nameLower == targetLower) {
-                            // Already on main thread via HttpClient
-                            // Use getChildByIDRecursive to avoid accessing m_fields which might be unsafe if node is dying
+                            // ya estamos en el main thread
+                            // usamos getChildByIDRecursive porque m_fields puede fallar si el nodo se muere
                             if (auto banBtn = static_cast<CCMenuItemSpriteExtra*>(self->getChildByIDRecursive("ban-user-button"))) {
                                 banBtn->setEnabled(false);
                                 banBtn->setOpacity(120);
@@ -122,7 +122,7 @@ class $modify(PaimonProfilePage, ProfilePage) {
             return;
         }
 
-        // Username displayed on ProfilePage
+        // nombre de usuario en el perfil
         std::string target = getViewedUsername();
         if (target.empty()) {
             Notification::create(Localization::get().getString("ban.profile.read_error"), NotificationIcon::Error)->show();
@@ -133,7 +133,7 @@ class $modify(PaimonProfilePage, ProfilePage) {
     }
 
     void addOrUpdateProfileThumbOnPage(int accountID) {
-        // Visibility: show if verified, or if ownProfile, or if moderator mode enabled
+        // visibilidad: si esta verificado, es mi perfil o soy mod
         bool has = ProfileThumbs::get().has(accountID);
         log::debug("[ProfilePage] addOrUpdateProfileThumbOnPage - accountID: {}, has: {}, ownProfile: {}", 
             accountID, has, this->m_ownProfile);
@@ -156,12 +156,12 @@ class $modify(PaimonProfilePage, ProfilePage) {
         if (!tex) {
             if (this->m_ownProfile) {
                 log::info("[ProfilePage] No local profile for current user, downloading...");
-                // Retain this to ensure it survives the async calls
+                // lo retenemos para que sobreviva
                 this->retain();
                 std::string username = GJAccountManager::sharedState()->m_username;
                 ThumbnailAPI::get().downloadProfile(accountID, username, [this, accountID](bool success, CCTexture2D* texture) {
                     if (success && texture) {
-                        // Retain texture to prevent autorelease
+                        // retenemos la textura
                         texture->retain();
                         ThumbnailAPI::get().downloadProfileConfig(accountID, [this, accountID, texture](bool s, const ProfileConfig& c) {
                             Loader::get()->queueInMainThread([this, accountID, texture, s, c]() {
@@ -169,13 +169,13 @@ class $modify(PaimonProfilePage, ProfilePage) {
                                     ProfileThumbs::get().cacheProfile(accountID, texture, {255,255,255}, {255,255,255}, 0.5f);
                                     if (s) ProfileThumbs::get().cacheProfileConfig(accountID, c);
                                     
-                                    // Only update UI if layer is still in scene
+                                    // solo actualizamos si sigue en la escena
                                     if (this->getParent()) {
                                         this->addOrUpdateProfileThumbOnPage(accountID);
                                     }
                                 } catch(...) {}
                                 
-                                // Release texture and this
+                                // soltamos la textura y esto
                                 texture->release();
                                 this->release();
                             });
@@ -317,6 +317,9 @@ class $modify(PaimonProfilePage, ProfilePage) {
             m_fields->m_isAdmin = false;
             PaimonDebug::log("[ProfilePage] Inicializando perfil - status moderador: false");
 
+            // Hide menu by default, showing only if verified
+            extraMenu->setVisible(false);
+
             // Ban button (only visible for verified moderators/admins, never on own profile)
             {
                 auto banSpr = ButtonSprite::create("X", 40, true, "bigFont.fnt", "GJ_button_06.png", 30.f, 0.6f);
@@ -338,7 +341,31 @@ class $modify(PaimonProfilePage, ProfilePage) {
                 bool wasVerified = Mod::get()->getSavedValue<bool>("is-verified-moderator", false);
                 if (wasVerified) {
                     m_fields->m_isApprovedMod = true;
+                    extraMenu->setVisible(true);
                     refreshBanButtonVisibility();
+                } else if (ownProfile) {
+                    // Check server if we have no local data and it's our profile
+                    auto gm = GameManager::sharedState();
+                    if (gm && !gm->m_playerName.empty()) {
+                        std::string username = gm->m_playerName;
+                        // Using ThumbnailAPI to check status securely
+                        ThumbnailAPI::get().checkModerator(username, [this](bool isApproved, bool isAdmin) {
+                            Loader::get()->queueInMainThread([this, isApproved, isAdmin]() {
+                                if (isApproved) {
+                                    m_fields->m_isApprovedMod = true;
+                                    m_fields->m_isAdmin = isAdmin;
+                                    
+                                    // Save approved status
+                                    Mod::get()->setSavedValue("is-verified-moderator", true);
+                                    
+                                    if (m_fields->m_extraMenu) {
+                                        m_fields->m_extraMenu->setVisible(true);
+                                    }
+                                    refreshBanButtonVisibility();
+                                }
+                            });
+                        });
+                    }
                 }
             } catch (...) {
             }
@@ -520,7 +547,7 @@ class $modify(PaimonProfilePage, ProfilePage) {
                             "botonMove",
                             "",
                             [](){
-                                // Use _spr for better resource handling
+                                // usamos _spr para manejar mejor los recursos
                                 CCSprite* s = CCSprite::create("botonMove.png"_spr);
                                 if (!s) s = CCSprite::createWithSpriteFrameName("edit_eTabBtn_001.png");
                                 if (!s) s = CCSprite::createWithSpriteFrameName("GJ_editBtn_001.png");
@@ -530,7 +557,7 @@ class $modify(PaimonProfilePage, ProfilePage) {
                         );
                     }
                     
-                    // Fix: Scale based on size
+                    // arreglo: escalar segun el tamanio
                     float targetSize = 30.0f;
                     float currentSize = std::max(editSpr->getContentWidth(), editSpr->getContentHeight());
                     if (currentSize > 0) {
@@ -548,7 +575,7 @@ class $modify(PaimonProfilePage, ProfilePage) {
                     defEdit.opacity = 1.0f;
                     ButtonLayoutManager::get().setDefaultLayoutIfAbsent("ProfilePage", "button-edit-toggle", defEdit);
 
-                    // Migrate older default (previously 0.7) to the new smaller default
+                    // migramos el default viejo de 0.7 al nuevo
                     if (auto oldDef = ButtonLayoutManager::get().getDefaultLayout("ProfilePage", "button-edit-toggle")) {
                         if (oldDef->scale > 0.31f) {
                             ButtonLayoutManager::get().setDefaultLayout("ProfilePage", "button-edit-toggle", defEdit);
@@ -567,7 +594,7 @@ class $modify(PaimonProfilePage, ProfilePage) {
                     extraMenu->addChild(editBtn);
                     m_fields->m_editModeBtn = editBtn;
                     
-                    // Animar entrada of the Button
+                    // animar entrada del boton
                     editBtn->setScale(0.f);
                     editBtn->runAction(CCSequence::create(
                         CCDelayTime::create(0.2f),
@@ -577,38 +604,25 @@ class $modify(PaimonProfilePage, ProfilePage) {
                 }
             }
 
-            // No automatic re-layout; positions are fixed near the right side
+            // nada de layout automatico, las posiciones son fijas
 
-
-            // Don't show thumbnail on profile page to save space
-            // addOrUpdateProfileThumbOnPage(accountID);
-        
-            // Solicitar assets de perfil desde el servidor y mostrarlos (si existen)
+            // pedir assets del server si hay
             try {
                 auto gm = GameManager::sharedState();
-                // Avoid ambiguous conditional conversion between gd::string and std::string on Android
+                // evitar conversion ambigua en android
                 std::string username;
                 if (ownProfile && gm) {
-                    // Convert explicitly to std::string
+                    // convertir a std::string expliciatmente
                     username = gm->m_playerName.c_str();
                 }
                 if (!username.empty()) {
                     log::info("Profile assets download disabled for {}", username);
-                    // SERVER DOWNLOAD DISABLED
-                    
-                    /* ORIGINAL SERVER CODE - DISABLED
-                    ServerAPI::get().downloadProfileAssets(
-                        username,
-                        [this](bool ok, CCTexture2D* tex, const std::string& profileJsonStr){
- // ... código of parseo and visualización ...
-                        }
-                    );
-                    */
+                    // descarga del server desactivada
                 } else {
-                    log::info("Username no disponible para este ProfilePage; se omite descarga remota");
+                    log::info("no hay username, pasamos de descarga remota");
                 }
             } catch (...) {
-                log::warn("Fallo pidiendo assets de perfil");
+                log::warn("fallo pidiendo assets");
             }
         } catch (...) {}
         return true;
@@ -870,25 +884,18 @@ class $modify(PaimonProfilePage, ProfilePage) {
         try {
             bpp = img.hasAlpha() ? 4 : 3;
         } catch (...) { bpp = 4; }
-        std::vector<uint8_t> rgb(static_cast<size_t>(w) * static_cast<size_t>(h) * 3);
+        // Prepare RGBA buffer for CapturePreviewPopup
+        std::vector<uint8_t> rgba(static_cast<size_t>(w) * static_cast<size_t>(h) * 4);
         const unsigned char* src = reinterpret_cast<const unsigned char*>(raw);
+        
         if (bpp == 4) {
-            for (int y = 0; y < h; y++) {
-                for (int x = 0; x < w; x++) {
-                    size_t i = static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x);
-                    rgb[i*3 + 0] = src[i*4 + 0];
-                    rgb[i*3 + 1] = src[i*4 + 1];
-                    rgb[i*3 + 2] = src[i*4 + 2];
-                }
-            }
-        } else {
-            for (int y = 0; y < h; y++) {
-                for (int x = 0; x < w; x++) {
-                    size_t i = static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x);
-                    rgb[i*3 + 0] = src[i*3 + 0];
-                    rgb[i*3 + 1] = src[i*3 + 1];
-                    rgb[i*3 + 2] = src[i*3 + 2];
-                }
+             memcpy(rgba.data(), src, static_cast<size_t>(w) * h * 4);
+        } else { // bpp == 3
+            for (int i = 0; i < w * h; i++) {
+                rgba[i*4 + 0] = src[i*3 + 0];
+                rgba[i*4 + 1] = src[i*3 + 1];
+                rgba[i*4 + 2] = src[i*3 + 2];
+                rgba[i*4 + 3] = 255;
             }
         }
 
@@ -898,8 +905,8 @@ class $modify(PaimonProfilePage, ProfilePage) {
         tex->autorelease();
 
         int accountID = this->m_accountID;
-        auto buffer = std::shared_ptr<uint8_t>(new uint8_t[rgb.size()], std::default_delete<uint8_t[]>());
-        memcpy(buffer.get(), rgb.data(), rgb.size());
+        auto buffer = std::shared_ptr<uint8_t>(new uint8_t[rgba.size()], std::default_delete<uint8_t[]>());
+        memcpy(buffer.get(), rgba.data(), rgba.size());
 
         // Capture actual image dimensions to save correctly
         int imgWidth = w;
@@ -914,7 +921,17 @@ class $modify(PaimonProfilePage, ProfilePage) {
             imgHeight,
             [this, accountID](bool ok, int id, std::shared_ptr<uint8_t> buf, int w, int h, std::string mode, std::string replaceId){
                 if (ok) {
-                    ProfileThumbs::get().saveRGB(accountID, buf.get(), w, h);
+                    // Convert back to RGB for ProfileThumbs storage
+                    std::vector<uint8_t> rgb(w * h * 3);
+                    if (buf) {
+                        for(int i = 0; i < w * h; i++) {
+                            rgb[i*3 + 0] = buf.get()[i*4 + 0];
+                            rgb[i*3 + 1] = buf.get()[i*4 + 1];
+                            rgb[i*3 + 2] = buf.get()[i*4 + 2];
+                        }
+                    }
+                    
+                    ProfileThumbs::get().saveRGB(accountID, rgb.data(), w, h);
                     ThumbsRegistry::get().mark(ThumbKind::Profile, accountID, false);
                     Mod::get()->setSavedValue("my-account-id", accountID);
                     Notification::create(Localization::get().getString("profile.saved").c_str(), NotificationIcon::Success)->show();
